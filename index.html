@@ -1,0 +1,1328 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#18212c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="數小節">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<title>數小節練習室</title>
+<style>:root{padding-top:env(safe-area-inset-top,0px)}body{margin:0;font-size:14px}img{max-width:100%}</style>
+</head>
+<body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: song loader, sticky drum-machine transport, practice controls, then the song as a drum chart or as rehearsal-chart rows of 4 bars. Every song-specific value comes from song.json. */
+:root{
+  --paper:#eef1f4; --card:#ffffff; --ink:#18212c; --muted:#5a6676; --rule:#d3dae2;
+  --brass:#a86f0c; --brass-soft:#f3e3c2;
+  --sV:#2c7a80; --sP:#6656b0; --sC:#c2423a; --sBr:#c36e1f; --sX:#7d8794; --sIn:#4f6d8f; --sOut:#6e5a48; --sGap:#a9b2bd;
+  --good:#2f7d4a; --warn:#b26a00; --bad:#b33a3a;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0f151c; --card:#161f29; --ink:#e4e9ef; --muted:#93a0ae; --rule:#28333f;
+  --brass:#e2aa45; --brass-soft:#3a2c12;
+  --sV:#5fb3b9; --sP:#9c8ef0; --sC:#ee7469; --sBr:#eb9c52; --sX:#8f99a6; --sIn:#8fa9c9; --sOut:#b89d84; --sGap:#4a5562;
+  --good:#5fc082; --warn:#e7a43a; --bad:#ef7a7a; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#0f151c; --card:#161f29; --ink:#e4e9ef; --muted:#93a0ae; --rule:#28333f;
+  --brass:#e2aa45; --brass-soft:#3a2c12;
+  --sV:#5fb3b9; --sP:#9c8ef0; --sC:#ee7469; --sBr:#eb9c52; --sX:#8f99a6; --sIn:#8fa9c9; --sOut:#b89d84; --sGap:#4a5562;
+  --good:#5fc082; --warn:#e7a43a; --bad:#ef7a7a; color-scheme:dark;}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--card)}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* header */
+.top{padding-block:22px 10px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:end;justify-content:space-between}
+.top h1{font-family:var(--f-display);font-weight:800;font-size:clamp(34px,6vw,48px);letter-spacing:.01em;line-height:1}
+.top h1 small{display:block;font-family:var(--f-body);font-weight:500;font-size:14px;color:var(--muted);letter-spacing:0;margin-top:6px}
+.facts{display:flex;flex-wrap:wrap;gap:6px}
+.fact{font-family:var(--f-mono);font-size:12.5px;padding:3px 9px;border:1px solid var(--rule);border-radius:4px;background:var(--card);white-space:nowrap}
+
+/* transport */
+.transport{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--rule);box-shadow:0 1px 0 var(--rule)}
+.tp{display:grid;grid-template-columns:auto 1fr auto;gap:14px 20px;align-items:center;padding-block:12px}
+.counter{display:flex;align-items:baseline;gap:8px;min-width:150px}
+.counter .num{font-family:var(--f-display);font-weight:800;font-size:64px;line-height:.9;font-variant-numeric:tabular-nums;min-width:2.1ch;text-align:right}
+.counter .lab{font-size:13px;color:var(--muted);line-height:1.3}
+.counter .lab b{display:block;color:var(--ink);font-size:15px}
+.mid{min-width:0;display:grid;gap:8px}
+.lights{display:flex;gap:6px;align-items:center}
+.light{width:30px;height:30px;border-radius:50%;border:2px solid var(--rule);display:grid;place-items:center;font-family:var(--f-mono);font-size:12px;color:var(--muted);transition:background .06s}
+.light.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.light.one.on{background:var(--brass);border-color:var(--brass);color:#fff}
+.phrase{display:flex;gap:3px;margin-left:12px;align-items:center}
+.phrase span{width:16px;height:8px;border-radius:2px;background:var(--rule)}
+.phrase span.on{background:var(--brass)}
+.phrase em{font-style:normal;font-size:12px;color:var(--muted);margin-left:6px;white-space:nowrap}
+.seekrow{display:flex;gap:10px;align-items:center;min-width:0}
+.seekrow input[type=range]{flex:1;min-width:0;accent-color:var(--brass)}
+.time{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.secname{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.secname b{color:var(--ink)}
+.btns{display:flex;gap:8px;align-items:center}
+.play{width:56px;height:56px;border-radius:50%;border:0;background:var(--ink);color:var(--card);display:grid;place-items:center}
+.play svg{width:22px;height:22px;fill:currentColor}
+.play:disabled{opacity:.35;cursor:not-allowed}
+@media (max-width:640px){
+  .tp{grid-template-columns:auto 1fr;}
+  .btns{grid-column:2;grid-row:1;justify-self:end}
+  .mid{grid-column:1/-1}
+  .counter .num{font-size:52px}
+}
+
+/* loader */
+.loader{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-block:14px;border-bottom:1px dashed var(--rule)}
+.filebtn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:6px;border:1.5px solid var(--ink);background:transparent;font-weight:500}
+.filebtn.primary{background:var(--ink);color:var(--card)}
+.loader .hint{color:var(--muted);font-size:13.5px;min-width:0;flex:1 1 260px}
+.drop{outline:2px dashed var(--brass);outline-offset:4px}
+
+/* modes */
+.modes{display:flex;gap:0;margin-top:18px;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden;width:fit-content;max-width:100%}
+.modes button{border:0;background:transparent;padding:9px 16px;font-weight:500;white-space:nowrap}
+.modes button[aria-pressed=true]{background:var(--ink);color:var(--card)}
+.modes button+button{border-left:1.5px solid var(--ink)}
+@media (max-width:440px){.modes button{padding:9px 11px;font-size:14px}}
+.panel{margin-top:14px;display:grid;gap:12px}
+.panel p{margin:0;max-width:68ch}
+.opts{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:14px}
+.opts label{display:inline-flex;gap:6px;align-items:center}
+.opts select{padding:4px 6px;border-radius:5px;border:1px solid var(--rule);background:var(--card)}
+.tapzone{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:stretch}
+.tap{border:0;border-radius:10px;background:var(--brass);color:#fff;font-weight:700;font-size:20px;padding:22px 16px;letter-spacing:.04em;transition:transform .05s}
+.tap:active,.tap.hit{transform:scale(.98);filter:brightness(1.12)}
+.tap small{display:block;font-weight:500;font-size:13px;opacity:.85;letter-spacing:0}
+.ghost{border:1.5px solid var(--ink);background:transparent;border-radius:10px;padding:10px 16px;font-weight:500}
+.toast{min-height:26px;font-size:14px}
+.toast span{display:inline-block;padding:2px 10px;border-radius:4px;background:var(--brass-soft)}
+.toast .ok{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.toast .no{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+
+/* insight */
+.insight{margin-top:22px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.insight div{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;min-width:0}
+.insight b{font-family:var(--f-display);font-size:26px;font-weight:800;display:block;line-height:1.1}
+.insight span{font-size:13.5px;color:var(--muted)}
+@media (max-width:700px){.insight{grid-template-columns:1fr}}
+
+/* results */
+.results{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px;display:grid;gap:12px}
+.score{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}
+.score b{font-family:var(--f-display);font-weight:800;font-size:44px;line-height:1}
+.strip{position:relative;height:44px;border-radius:6px;background:var(--paper);overflow:hidden}
+.strip i{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.55}
+.strip u{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;text-decoration:none}
+.legend{font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.rlist{display:grid;gap:4px;font-size:14px;max-height:320px;overflow:auto}
+.rlist div{display:grid;grid-template-columns:22px 92px 1fr auto;gap:8px;padding:4px 6px;border-radius:4px}
+.rlist div:nth-child(odd){background:var(--paper)}
+.rlist .d{color:var(--muted);font-family:var(--f-mono);font-size:12.5px;white-space:nowrap}
+
+/* map */
+.maphead{margin-top:30px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.maphead h2{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:.01em}
+.maphead p{margin:0;color:var(--muted);font-size:13.5px}
+.map{margin-top:12px;display:grid;gap:4px;padding-bottom:40px}
+.sec{display:grid;grid-template-columns:230px 1fr;gap:10px 18px;padding-block:12px;border-top:1px solid var(--rule)}
+.sec .meta{min-width:0}
+.sec .tag{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:15.5px}
+.sec .tag i{width:12px;height:12px;border-radius:3px;background:var(--c)}
+.sec .range{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.sec .note{font-size:13.5px;color:var(--muted);margin-top:4px;line-height:1.55}
+.sec .acts{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+.sec .acts button{font-size:12.5px;padding:3px 9px;border-radius:4px;border:1px solid var(--rule);background:var(--card)}
+.sec .acts button[aria-pressed=true]{border-color:var(--brass);background:var(--brass-soft)}
+.bars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;align-content:start}
+.bar{position:relative;height:40px;border-radius:4px;border:0;background:color-mix(in srgb,var(--c) 14%,var(--card));color:var(--ink);font-family:var(--f-mono);font-size:13px;text-align:left;padding:0 8px;display:flex;align-items:center;justify-content:space-between;gap:4px;overflow:hidden}
+.bar:nth-child(4n+1){box-shadow:inset 3px 0 0 color-mix(in srgb,var(--c) 70%,transparent)}
+.bar .fl{font-family:var(--f-body);font-size:11px;font-weight:700;color:var(--brass);white-space:nowrap}
+.bar.now{background:var(--c);color:var(--card)}
+.bar.now .fl{color:var(--card)}
+.bar .bn{display:flex;flex-direction:column;gap:2px;line-height:1.05}
+.bar .bt{font-size:10.5px;color:var(--muted);letter-spacing:.02em}
+.bar.now .bt{color:inherit;opacity:.85}
+.ovl-time{position:absolute;font:500 10px/1 var(--f-mono);color:#5a6676;pointer-events:none;white-space:nowrap}
+.bar.loop{outline:1.5px dashed var(--brass);outline-offset:-1.5px}
+@media (max-width:700px){.sec{grid-template-columns:1fr}.bar .fl{font-size:10px}}
+.hiddenmap{margin-top:12px;padding:28px 18px;border:1.5px dashed var(--rule);border-radius:10px;color:var(--muted);text-align:center}
+details.adv{font-size:13.5px;color:var(--muted)}
+details.adv summary{cursor:pointer}
+details.adv .row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+details.adv input{width:90px;padding:3px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--card)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* view switch + score (sheet stays paper-white in both themes, like a printed chart) */
+:root{--sheet:#fffefb;--sheet-ink:#1b1f24;--pV:#2c7a80;--pP:#6656b0;--pC:#c2423a;--pBr:#c36e1f;--pX:#7d8794;--pIn:#4f6d8f;--pOut:#6e5a48}
+.viewsw{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.viewsw button{border:0;background:var(--card);padding:4px 12px;font-size:13.5px}
+.viewsw button[aria-pressed=true]{background:var(--ink);color:var(--card)}
+.scorehead{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.scorehead h2{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:.01em}
+.scorehead p{margin:0;color:var(--muted);font-size:13.5px;max-width:62ch}
+.scorecard{margin-top:12px;background:var(--sheet);color:var(--sheet-ink);border:1px solid var(--rule);border-radius:8px;padding:6px 2px 10px;overflow:hidden}
+#score{position:relative;min-height:160px;cursor:pointer}
+#score .msg{padding:28px 18px;color:#5a6676;text-align:center;font-size:14px;cursor:default}
+.ovl-strip{position:absolute;height:3px;border-radius:2px;pointer-events:none;opacity:.85}
+.ovl-lab{position:absolute;font:700 11px/1.2 var(--f-body);color:#fff;padding:2px 6px;border-radius:3px;transform:translateY(-100%);pointer-events:none;white-space:nowrap}
+.scoreopts{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13.5px;margin-top:8px;color:var(--muted)}
+.scoreopts label{display:inline-flex;gap:6px;align-items:center}
+.scoreopts input[type=number]{width:64px;padding:2px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--card)}
+.scoreopts .filebtn{padding:4px 10px;font-size:13px;border-width:1px}
+
+/* template: song loader + edit mode */
+.songbar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding-block:14px;border-bottom:1px dashed var(--rule)}
+.songbar .hint{color:var(--muted);font-size:13.5px;flex:1 1 280px;min-width:0}
+.songbar select{padding:6px 8px;border-radius:6px;border:1px solid var(--rule);background:var(--card);max-width:100%}
+.notice{font-size:13.5px;background:var(--brass-soft);border-radius:6px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.notice button{border:1px solid var(--ink);background:transparent;border-radius:5px;padding:2px 10px;font-size:13px}
+.chip-edit{background:var(--brass-soft)!important;border-color:var(--brass)!important}
+.edittools{margin-top:12px;display:grid;gap:10px;background:var(--card);border:1.5px solid var(--brass);border-radius:10px;padding:12px 14px;font-size:14px}
+.edittools .row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.edittools .grp{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+.edittools .grp b{font-weight:500;color:var(--muted);font-size:13px}
+.edittools button{border:1px solid var(--rule);background:var(--paper);border-radius:5px;padding:3px 10px;font-size:13px}
+.edittools button.main{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.edittools label{display:inline-flex;gap:5px;align-items:center}
+.edittools p{margin:0;color:var(--muted);font-size:13px;max-width:70ch}
+.edittools textarea{width:100%;min-height:140px;font-family:var(--f-mono);font-size:12px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);padding:8px}
+.sec .meta input.nm{font:inherit;font-weight:700;font-size:15px;width:9em;max-width:100%;padding:2px 6px;border:1px solid var(--rule);border-radius:4px;background:var(--card)}
+.sec .meta select.ty{font-size:13px;padding:2px 4px;border:1px solid var(--rule);border-radius:4px;background:var(--card)}
+.editing .sec .tag{flex-wrap:wrap;row-gap:4px}
+.sec .meta input.nm{width:7.5em}
+.sec .rng{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:13px;color:var(--muted);margin-top:6px}
+.sec .rng input{width:4.2em;padding:2px 4px;border:1px solid var(--rule);border-radius:4px;background:var(--card);font-family:var(--f-mono);font-size:13px}
+.sec .acts button.mini{padding:2px 7px}
+.sec .acts .lbl{font-size:12px;color:var(--muted);align-self:center}
+.sec .acts button.del{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.sec.gap .tag{color:var(--muted);font-weight:500}
+.sec.gap .bar{background:repeating-linear-gradient(135deg,var(--card) 0 6px,color-mix(in srgb,var(--sGap) 22%,var(--card)) 6px 12px);color:var(--muted)}
+.edittools .addrow input{width:4.2em;padding:2px 4px;border:1px solid var(--rule);border-radius:4px;background:var(--card);font-family:var(--f-mono)}
+.edittools select{padding:2px 4px;border:1px solid var(--rule);border-radius:4px;background:var(--card);font-size:13px}
+.editing .bar{cursor:cell}
+.editing .bar:hover{outline:1.5px solid var(--brass);outline-offset:-1.5px}
+.edit-toggle{border:1.5px solid var(--ink);background:transparent;border-radius:6px;padding:3px 12px;font-size:13.5px;font-weight:500}
+.edit-toggle[aria-pressed=true]{background:var(--brass);border-color:var(--brass);color:#fff}
+
+/* ===== phone layout: compact sticky counter on top, thumb-reach dock at the bottom ===== */
+html{-webkit-text-size-adjust:100%}
+body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-highlight-color:transparent}
+.wrap{max-width:680px}
+.top{padding-block:16px 6px}
+.top h1{font-size:clamp(30px,8vw,40px)}
+.facts .fact{font-size:11.5px;padding:2px 7px}
+.songbar{padding-block:10px}
+.filebtn{min-height:44px;padding:10px 16px}
+.howto{font-size:13.5px;color:var(--muted);padding-block:6px}
+.howto summary{cursor:pointer;min-height:36px;display:flex;align-items:center}
+.howto ol{margin:4px 0 8px;padding-left:20px;display:grid;gap:6px}
+.howto b{color:var(--ink);font-weight:500}
+.tp{grid-template-columns:auto 1fr!important;gap:6px 14px!important;padding-block:8px!important}
+.counter{min-width:0!important}
+.counter .num{font-size:56px!important}
+.mid{grid-column:auto!important;gap:4px!important}
+.lights{gap:4px!important;flex-wrap:wrap}
+#lightBox{gap:4px!important}
+.light{width:27px;height:27px;font-size:11px}
+.phrase{margin-left:6px!important}
+.phrase span{width:11px!important}
+.phrase em{display:none}
+.ovl-time{background:var(--sheet);padding:1px 2px;border-radius:2px}
+.secname{white-space:normal;line-height:1.35}
+.insight{margin-top:14px;display:flex!important;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.insight div{padding:10px 12px;flex:0 0 82%;scroll-snap-align:start}
+.insight b{font-size:22px}
+.modes{width:100%;margin-top:14px}
+.modes button{flex:1;min-height:44px;padding:8px 6px!important}
+.panel p{font-size:14px}
+.opts{gap:10px 16px}
+.opts label{min-height:36px}
+.opts select,.scoreopts input[type=number]{min-height:34px}
+.viewsw button{min-height:36px;padding:4px 14px}
+.qbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qbtns .ghost{min-height:44px}
+.qhint{color:var(--muted);font-size:13px!important}
+.scorehead{margin-top:18px;align-items:center}
+.scorehead h2,.maphead h2{font-size:26px}
+.zoombtns{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.zoombtns button{border:0;background:var(--card);min-width:44px;min-height:36px;font-weight:700}
+.zoombtns button+button{border-left:1px solid var(--rule)}
+.scorecard{margin-left:calc(-1 * max(16px, env(safe-area-inset-left,0px)) + 6px);margin-right:calc(-1 * max(16px, env(safe-area-inset-right,0px)) + 6px)}
+.scoreopts{gap:6px 14px}
+.scoreopts label{min-height:36px}
+.maphead{align-items:center;margin-top:18px}
+.mapnote{margin:4px 0 0;color:var(--muted);font-size:13.5px}
+.sec{grid-template-columns:1fr!important}
+.bar{height:46px}
+.sec .acts button{min-height:34px;padding:4px 10px}
+.sec .acts button.mini{min-width:38px}
+.edittools button{min-height:34px}
+.edit-toggle{min-height:36px}
+.rlist div{grid-template-columns:18px 78px 1fr auto}
+/* dock */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--rule);
+  box-shadow:0 -6px 18px color-mix(in srgb,var(--ink) 8%,transparent);padding-bottom:env(safe-area-inset-bottom,0px)}
+.dock-in{max-width:680px;margin:0 auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));display:grid;gap:6px}
+.dock .seekrow{gap:10px}
+.dock .seekrow input[type=range]{height:28px}
+.dock-btns{display:grid;grid-template-columns:repeat(5,1fr);align-items:center;justify-items:center}
+.dbtn{border:0;background:transparent;display:grid;justify-items:center;gap:2px;min-width:52px;min-height:48px;padding:4px 2px;color:var(--ink);border-radius:8px}
+.dbtn svg{width:22px;height:22px;fill:currentColor}
+.dbtn span{font-size:10.5px;color:var(--muted);white-space:nowrap}
+.dbtn:active{background:var(--paper)}
+.dbtn[aria-pressed=true]{color:var(--brass)}
+.dbtn[aria-pressed=true] span{color:var(--brass)}
+.dock .play{width:60px;height:60px}
+.dock-tap .tap{width:100%;min-height:72px;font-size:22px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.dock-tap .tap:disabled{opacity:.45}
+.library{padding-block:8px 40px}
+.libhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:10px}
+.libhead h2{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:.01em}
+.libhint,.libstore{color:var(--muted);font-size:13.5px;margin:8px 0 0}
+.libmsg{min-height:22px;font-size:14px;margin-top:8px}
+.songs{display:grid;gap:10px;margin-top:14px}
+.song{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:12px 14px;text-align:left;width:100%;font:inherit;color:inherit}
+.song .t{font-weight:700;font-size:17px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.song .m{grid-column:1;color:var(--muted);font-size:12.5px;font-family:var(--f-mono)}
+.song .go{grid-row:1/3;grid-column:2;display:flex;gap:6px;align-items:center}
+.song .go button{min-height:40px;border-radius:8px;padding:0 14px;font-weight:500;border:1.5px solid var(--ink);background:var(--ink);color:var(--card)}
+.song .go button.del{background:transparent;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent);padding:0 10px}
+.song.last{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass)}
+.empty{border:1.5px dashed var(--rule);border-radius:10px;padding:26px 16px;text-align:center;color:var(--muted)}
+.backbtn{border:1.5px solid var(--ink);background:transparent;border-radius:6px;min-height:40px;padding:0 14px;font-weight:500}
+body.inlib{padding-bottom:24px}
+body.inlib .dock{display:none}
+body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
+</style>
+<div class="wrap">
+  <header class="top">
+    <h1 id="songTitle">數小節練習室<small id="songSub">—</small></h1>
+    <div class="facts" id="facts"></div>
+  </header>
+  <div class="songbar" id="loader">
+    <button class="backbtn" id="toLib">← 曲庫</button>
+    <select id="audioSel" aria-label="播放的音檔" hidden></select>
+    <span class="hint" id="fileHint"></span>
+  </div>
+  <div class="notice" id="notice" hidden></div>
+</div>
+
+<section class="wrap library" id="library">
+  <div class="libhead">
+    <h2>曲庫</h2>
+    <span>
+      <label class="filebtn primary" for="files">＋ 匯入歌曲</label>
+      <input type="file" id="files" multiple hidden>
+      <label class="filebtn" for="folder" id="folderBtn">匯入資料夾</label>
+      <input type="file" id="folder" webkitdirectory multiple hidden>
+    </span>
+  </div>
+  <p class="libhint">可以匯入三種：打包好的歌曲 <b>.html</b>、整包 <b>.zip</b>，或一次選 song.json＋音檔＋鼓譜。歌會存在這台裝置上，下次直接點歌名就能練。</p>
+  <div class="libmsg" id="libMsg" aria-live="polite"></div>
+  <div class="songs" id="songs"></div>
+  <p class="libstore" id="libStore"></p>
+</section>
+
+<div id="practice" hidden>
+<div class="transport">
+  <div class="wrap tp">
+    <div class="counter" aria-live="off">
+      <span class="num" id="barNum">–</span>
+      <span class="lab"><b id="barLab">小節</b><span id="beatLab">尚未播放</span></span>
+    </div>
+    <div class="mid">
+      <div class="lights" id="lights">
+        <span id="lightBox" style="display:flex;gap:6px"></span>
+        <div class="phrase" id="phrase" title="目前在 4 小節樂句中的位置"><span></span><span></span><span></span><span></span><em id="phraseLab">4 小節一句</em></div>
+      </div>
+      <div class="secname" id="secName">段落：<b>—</b></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap main">
+  <section class="insight" id="insight" aria-label="這首歌的規律"></section>
+
+  <nav class="modes" role="group" aria-label="練習模式">
+    <button id="m-follow" aria-pressed="true">跟著數</button>
+    <button id="m-sec" aria-pressed="false">抓段落</button>
+    <button id="m-phrase" aria-pressed="false">抓 4 小節</button>
+  </nav>
+
+  <section class="panel" id="panelFollow">
+    <p>邊聽邊看上面的計數器，跟著唸「<b>1</b>-2-3-4、<b>2</b>-2-3-4…」。點譜上或地圖上任何一小節可以跳過去。</p>
+    <div class="opts">
+      <span class="viewsw" role="group" aria-label="顯示"><button id="v-score" aria-pressed="true">鼓譜</button><button id="v-map" aria-pressed="false">小節地圖</button></span>
+      <label><input type="checkbox" id="click"> 節拍器</label>
+      <label><input type="checkbox" id="clickOne"> 只響第 1 拍</label>
+      <label>速度 <select id="rate"><option value="0.75">0.75×</option><option value="0.85">0.85×</option><option value="1" selected>1×</option></select></label>
+    </div>
+  </section>
+
+  <section class="panel" id="panelQuiz" hidden>
+    <p id="quizIntro"></p>
+    <div class="opts">
+      <label>從 <select id="startSec"></select> 開始</label>
+      <label><input type="checkbox" id="showLights" checked> 顯示拍子燈</label>
+      <label><input type="checkbox" id="instant" checked> 即時提示對錯</label>
+      <label>速度 <select id="rate2"><option value="0.75">0.75×</option><option value="0.85">0.85×</option><option value="1" selected>1×</option></select></label>
+    </div>
+    <div class="qbtns">
+      <button class="ghost" id="qStart" disabled>開始測驗</button>
+      <button class="ghost" id="qEnd" disabled>看結果</button>
+    </div>
+    <p class="qhint">開始後，用畫面最下方的大按鈕作答。</p>
+    <div class="toast" id="toast" aria-live="polite"></div>
+    <div class="results" id="results" hidden></div>
+  </section>
+
+  <section id="scoreWrap">
+    <div class="scorehead">
+      <h2>鼓譜</h2>
+      <span class="zoombtns" role="group" aria-label="譜的大小"><button id="zoomOut" aria-label="譜縮小">A−</button><button id="zoomIn" aria-label="譜放大">A＋</button></span>
+    </div>
+    <div class="scorecard"><div id="score"><div class="msg">鼓譜載入中…</div></div></div>
+    <div class="scoreopts">
+      <label><input type="checkbox" id="follow" checked> 播放時自動捲動</label>
+      <label><input type="checkbox" id="secMarks" checked> 段落色條</label>
+      <label><input type="checkbox" id="timeMarks" checked> 譜上顯示時間</label>
+      <label class="filebtn" for="scoreFile">換一份譜</label><input type="file" id="scoreFile" hidden>
+      <label>譜的第一小節＝第 <input type="number" id="firstBar" value="0" step="1" inputmode="numeric"> 小節</label>
+    </div>
+  </section>
+
+  <section id="mapWrap" hidden>
+    <div class="maphead">
+      <h2>小節地圖</h2>
+      <button class="edit-toggle" id="editBtn" aria-pressed="false">修正</button>
+    </div>
+    <p class="mapnote">一行 4 小節，<span style="color:var(--brass);font-weight:700">▲</span> 是鼓有變化或過門。</p>
+    <div class="edittools" id="editTools" hidden>
+      <div class="row addrow">
+        <span class="grp"><b>新增段落</b>第 <input type="number" id="addFrom" min="1" step="1" inputmode="numeric" aria-label="新段落從第幾小節"> 到 <input type="number" id="addTo" min="1" step="1" inputmode="numeric" aria-label="新段落到第幾小節"> 小節</span>
+        <span class="grp"><select id="addType" aria-label="新段落的類型"></select><button class="main" id="addSec">新增</button></span>
+      </div>
+      <div class="row">
+        <span class="grp"><b>點小節時</b>
+          <label><input type="radio" name="tool" value="fill" checked> 切換 ▲</label>
+          <label><input type="radio" name="tool" value="split"> 從這裡切出新段落</label>
+        </span>
+      </div>
+      <div class="row"><label><input type="checkbox" id="linked" checked> 移動起點、終點時，相鄰段落跟著動</label></div>
+      <div class="row">
+        <span class="grp"><b>第 1 拍</b><button id="beatPrev">往前一拍</button><button id="beatNext">往後一拍</button></span>
+        <span class="grp"><b>小節編號</b><button id="numDown">全部 −1</button><button id="numUp">全部 +1</button></span>
+      </div>
+      <div class="row">
+        <button class="main" id="copyJson">複製 song.json</button>
+        <button id="revert">還原</button>
+        <span class="toast" id="editToast" style="min-height:0"></span>
+      </div>
+      <p>修正會自動存在這台裝置的 App 裡。重新匯入同一首歌（例如電腦重新分析後的新版）時，修正仍然保留，可以按「改用匯入時的版本」放棄修正。要把修正帶回電腦：按「複製 song.json」，貼回電腦上的 song.json。</p>
+      <textarea id="jsonOut" hidden readonly aria-label="song.json 內容"></textarea>
+    </div>
+    <div class="map" id="map"></div>
+  </section>
+  <div class="hiddenmap" id="hiddenMap" hidden>答案先藏起來。按「看結果」或切回「跟著數」就會出現。</div>
+
+  <details class="adv">
+    <summary>對齊微調（換成原曲但小節對不上時用）</summary>
+    <div class="row">
+      <label for="offset">整體位移</label><input type="number" id="offset" step="10" value="0" inputmode="numeric"><span>毫秒（正數＝往後）</span>
+      <button class="ghost" id="offReset" style="padding:3px 10px;border-radius:5px">歸零</button>
+    </div>
+    <p style="margin:8px 0 0" id="analysisNote"></p>
+  </details>
+</div>
+
+</div><!-- /practice -->
+
+<div class="dock" id="dock">
+  <div class="dock-in">
+    <div class="dock-tap" id="dockTap" hidden>
+      <button class="tap" id="tap" disabled><span id="tapLab">新段落！</span></button>
+    </div>
+    <div class="seekrow">
+      <input type="range" id="seek" min="0" max="300" step="0.01" value="0" aria-label="播放位置" disabled>
+      <span class="time mono" id="time">0:00 / 0:00</span>
+    </div>
+    <div class="dock-btns">
+      <button class="dbtn" id="secStart" aria-label="回到這一段的開頭"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 6v12l-9-6z"/></svg><span>段落頭</span></button>
+      <button class="dbtn" id="prevBar" aria-label="前一小節"><svg viewBox="0 0 24 24"><path d="M11 6v12l-8-6zM21 6v12l-8-6z"/></svg><span>前一小節</span></button>
+      <button class="play" id="play" aria-label="播放" disabled><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4l13 8-13 8z"/></svg></button>
+      <button class="dbtn" id="nextBar" aria-label="後一小節"><svg viewBox="0 0 24 24"><path d="M3 6v12l8-6zM13 6v12l8-6z"/></svg><span>後一小節</span></button>
+      <button class="dbtn" id="clickBtn" aria-pressed="false" aria-label="節拍器"><svg viewBox="0 0 24 24"><path d="M9 3h6l4 18H5zM11.2 5 8 19h8l-1.1-5H12l-.8-3.4L15 6.4 14.6 5z"/></svg><span>節拍器</span></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.9.9/build/opensheetmusicdisplay.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<script>
+(() => {
+// 段落類型：key 存進 song.json，name 是預設顯示名稱
+const TYPES = [
+  {key:'intro', name:'前奏', label:'前奏 Intro', color:'--sIn', paper:'--pIn', count:false},
+  {key:'verse', name:'主歌', label:'主歌 Verse', color:'--sV', paper:'--pV', count:true},
+  {key:'pre', name:'導歌', label:'導歌／前副歌 Pre-Chorus', color:'--sP', paper:'--pP', count:true},
+  {key:'chorus', name:'副歌', label:'副歌 Chorus', color:'--sC', paper:'--pC', count:true},
+  {key:'bridge', name:'橋段', label:'橋段 Bridge／過門', color:'--sBr', paper:'--pBr', count:true},
+  {key:'interlude', name:'間奏', label:'間奏 Interlude', color:'--sX', paper:'--pX', count:false},
+  {key:'outro', name:'尾奏', label:'尾奏 Outro', color:'--sOut', paper:'--pOut', count:false}];
+const TYPE = Object.fromEntries(TYPES.map(t => [t.key, t]));
+const COLORS = Object.fromEntries(TYPES.map(t => [t.key, t.color]));
+const PAPER = Object.fromEntries(TYPES.map(t => [t.key, t.paper]));
+const LEGACY_NAME = /^([A-F]′?\s*段|[A-F]\s*組|段落)$/;
+// 舊版 song.json（A/B/C 組）轉成段落類型
+function migrateType(sec){
+  if (TYPE[sec.type]) return sec.type;
+  const n = sec.name || '';
+  const byName = [[/前奏/, 'intro'], [/尾奏/, 'outro'], [/間奏|停頓/, 'interlude'], [/導歌|前副歌/, 'pre'], [/副歌/, 'chorus'], [/橋段|過門/, 'bridge'], [/主歌/, 'verse']];
+  for (const [re, k] of byName) if (re.test(n)) return k;
+  return ({I:'intro', O:'outro', X:'interlude', A:'verse', B:'pre', C:'chorus'})[sec.type] || 'bridge';
+}
+function normalizeSections(list){
+  list.forEach(sec => {
+    sec.type = migrateType(sec);
+    if (!sec.name || LEGACY_NAME.test(sec.name.trim())) sec.name = TYPE[sec.type].name;
+  });
+  list.sort((a, b) => a.from - b.from);
+  return list;
+}
+const AUDIO_RE = /\.(wav|mp3|m4a|flac|ogg|aac|opus)$/i;
+const $ = id => document.getElementById(id);
+function showErr(msg){ const nt = $('notice'); nt.hidden = false; nt.innerHTML = ''; const sp = document.createElement('span'); sp.textContent = '⚠ ' + msg; nt.appendChild(sp); }
+window.addEventListener('error', e => showErr('程式錯誤：' + (e.message || e.error)));
+window.addEventListener('unhandledrejection', e => showErr('程式錯誤：' + ((e.reason && e.reason.message) || e.reason)));
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if (IOS) $('folderBtn').hidden = true;  // iOS 不能選資料夾，改用多選檔案或 .zip
+let zoomF = 1; try { zoomF = +localStorage.getItem('cb-zoom') || 1; } catch(e){}
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const audio = new Audio(); audio.preload = 'auto'; audio.setAttribute('playsinline', ''); audio.setAttribute('webkit-playsinline', '');
+let pendingSeek = null;
+let SONG = null, ORIG = null, B = [], BPB = 4, BAR1 = 0, LAST = 1, SECS = [], FILLS = new Set();
+let loaded = false, mode = 'follow', offset = 0, loop = null, actx = null, quiz = null, folderAudio = [];
+let editing = false;
+const score = {osmd:null, ready:false, needsRender:false, stamps:[], step:0, firstBar:0, measAbs:[], measDur:[], lastTop:null, width:0};
+try { offset = (+localStorage.getItem('cb-offset') || 0)/1000; $('offset').value = Math.round(offset*1000); } catch(e){}
+
+/* ---------- timing from the beat list ---------- */
+function beatIdx(t){
+  const n = B.length; if (n < 2) return 0;
+  if (t < B[0]) return (t - B[0])/(B[1] - B[0]);
+  if (t >= B[n-1]) return n - 1 + (t - B[n-1])/(B[n-1] - B[n-2]);
+  let lo = 0, hi = n - 1; while (hi - lo > 1){ const m = (lo + hi) >> 1; if (B[m] <= t) lo = m; else hi = m; }
+  return lo + (t - B[lo])/(B[lo+1] - B[lo]);
+}
+function beatTime(i){
+  const n = B.length;
+  if (i < 0) return B[0] + i*(B[1] - B[0]);
+  if (i > n - 1) return B[n-1] + (i - n + 1)*(B[n-1] - B[n-2]);
+  const k = Math.min(n - 2, Math.floor(i)); return B[k] + (i - k)*(B[k+1] - B[k]);
+}
+const barStart = n => beatTime(BAR1 + (n - 1)*BPB) + offset;
+const barLen = n => barStart(n + 1) - barStart(n);
+const beatLen = t => { const i = Math.floor(beatIdx(t - offset)); return beatTime(i + 1) - beatTime(i); };
+function pos(t){
+  const x = beatIdx(t - offset) - BAR1, bar = Math.floor(x/BPB) + 1, inBar = x - (bar - 1)*BPB;
+  return {bar, beat: Math.min(BPB, Math.floor(inBar) + 1), frac: inBar/BPB};
+}
+const secOf = bar => SECS.find(s => bar >= s.from && bar <= s.to);
+const mmss = s => { s = Math.max(0, s || 0); return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(Math.floor(s%60)).padStart(2,'0'); };
+const fmt = s => { s = Math.max(0, s || 0); return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0'); };
+const secLabel = s => s.sub ? `${s.name}（${s.sub}）` : s.name;
+const colorOf = s => `var(${COLORS[s.type] || '--sGap'})`;
+
+/* ---------- song ---------- */
+function validSong(s){ return s && Array.isArray(s.beats) && s.beats.length > 8 && Array.isArray(s.sections) && Number.isInteger(s.bar1Beat); }
+function songKey(s){ return 'cb-edit:' + (s.title || '未命名') + '|' + Math.round(s.duration || 0); }
+function setSong(s, orig){
+  SONG = JSON.parse(JSON.stringify(s)); if (orig) ORIG = JSON.parse(JSON.stringify(orig));
+  offset = Number.isFinite(SONG.offsetMs) ? SONG.offsetMs/1000 : 0; $('offset').value = Math.round(offset*1000);
+  B = SONG.beats; BPB = SONG.beatsPerBar || 4; BAR1 = SONG.bar1Beat; LAST = SONG.lastBar; SECS = SONG.sections = normalizeSections(SONG.sections); FILLS = new Set(SONG.fills || []);
+  score.firstBar = (SONG.score && Number.isInteger(SONG.score.firstBar)) ? SONG.score.firstBar : 0; $('firstBar').value = score.firstBar;
+  buildLights(); renderHeader(); buildMap(); buildStartSel();
+  if (score.osmd){ numberMeasures(); if (!$('scoreWrap').hidden) renderScore(); else score.needsRender = true; }
+  if (loop) loop = null;
+  lastBeatKey = null; tick(true);
+}
+function renderHeader(){
+  document.title = SONG.title ? `${SONG.title} · 數小節練習室` : '數小節練習室';
+  $('songTitle').innerHTML = `${esc(SONG.title || '未命名')}<small id="songSub">${esc(SONG.artist || '')}${SONG.artist ? ' · ' : ''}數小節練習室</small>`;
+  const barSec = (beatTime(BAR1 + BPB*Math.min(8, LAST)) - beatTime(BAR1))/Math.min(8, LAST);
+  const chips = [`♩ = ${Math.round(SONG.bpm)}`, `${BPB}/4`, `1 小節 ≈ ${barSec.toFixed(2)} 秒`, `${LAST} 小節`, SONG.constantTempo === false ? '速度浮動' : '速度固定'];
+  $('facts').innerHTML = chips.map(c => `<span class="fact">${esc(c)}</span>`).join('') + `<span class="fact ${SONG.edited ? 'chip-edit' : ''}">${SONG.edited ? '已修正' : '自動分析'}</span>`;
+  const ins = (SONG.insights || []).slice(0, 3);
+  $('insight').innerHTML = ins.map(x => `<div><b>${esc(x.title)}</b><span>${esc(x.text)}</span></div>`).join('');
+  $('insight').hidden = !ins.length;
+  const an = SONG.analysis || {};
+  $('analysisNote').textContent = `分析：${an.tool || '—'}${an.date ? '（' + an.date.replace('T', ' ') + '）' : ''}${an.note ? '。' + an.note : ''}${an.log ? '。' + an.log.join('；') : ''}`;
+}
+function buildLights(){
+  $('lightBox').innerHTML = Array.from({length: BPB}, (_, i) => `<div class="light${i === 0 ? ' one' : ''}">${i + 1}</div>`).join('');
+  lights = [...document.querySelectorAll('#lightBox .light')];
+}
+
+/* ---------- map ---------- */
+const barEls = {};
+function blocks(){
+  // 段落之間沒被分到的小節，顯示成「未分段」
+  const out = []; let cur = 1;
+  SECS.forEach((sec, i) => {
+    if (sec.from > cur) out.push({gap: true, from: cur, to: Math.min(sec.from - 1, LAST)});
+    out.push({gap: false, i, sec}); cur = Math.max(cur, sec.to + 1);
+  });
+  if (cur <= LAST) out.push({gap: true, from: cur, to: LAST});
+  return out;
+}
+function typeOptions(sel){ return TYPES.map(t => `<option value="${t.key}"${t.key === sel ? ' selected' : ''}>${t.label}</option>`).join(''); }
+function buildMap(){
+  const map = $('map'); map.innerHTML = ''; map.classList.toggle('editing', editing);
+  Object.keys(barEls).forEach(k => delete barEls[k]);
+  blocks().forEach(bk => {
+    const el = document.createElement('div');
+    const from = bk.gap ? bk.from : bk.sec.from, to = bk.gap ? bk.to : bk.sec.to, n = to - from + 1;
+    if (bk.gap){
+      el.className = 'sec gap'; el.style.setProperty('--c', 'var(--sGap)');
+      el.innerHTML = `<div class="meta"><div class="tag"><i></i>未分段</div>
+        <div class="range">第 ${from}–${to} 小節 · ${n} 小節 · ${fmt(barStart(from) - offset)}</div>
+        ${editing ? `<div class="acts"><select data-gaptype="${from}:${to}" aria-label="補成哪一種段落">${typeOptions('interlude')}</select><button data-fill="${from}:${to}">＋ 補成段落</button></div>` : ''}</div><div class="bars"></div>`;
+    } else {
+      const s = bk.sec, i = bk.i;
+      el.className = 'sec'; el.style.setProperty('--c', colorOf(s));
+      const head = editing
+        ? `<div class="tag"><i></i><select class="ty" data-ty="${i}" aria-label="段落類型">${typeOptions(s.type)}</select><input class="nm" data-nm="${i}" value="${esc(s.name)}" placeholder="${esc(TYPE[s.type].name)}" aria-label="顯示名稱"></div>`
+        : `<div class="tag"><i></i>${esc(s.name)}<span style="font-weight:400;color:var(--muted);font-size:13px">${esc(s.sub || '')}</span></div>`;
+      const range = editing
+        ? `<div class="rng">第 <input type="number" data-rf="${i}" value="${s.from}" min="1" max="${LAST}" aria-label="起點小節"> 到 <input type="number" data-rt="${i}" value="${s.to}" min="1" max="${LAST}" aria-label="終點小節"> 小節 · ${n} 小節</div>`
+        : `<div class="range">第 ${s.from}–${s.to} 小節 · ${n} 小節 · ${fmt(barStart(s.from) - offset)}</div>`;
+      const acts = editing
+        ? `<span class="lbl">起點</span><button class="mini" data-mv="${i}:from:-1" aria-label="起點提早一小節">◀</button><button class="mini" data-mv="${i}:from:1" aria-label="起點延後一小節">▶</button>
+           <span class="lbl">終點</span><button class="mini" data-mv="${i}:to:-1" aria-label="終點提早一小節">◀</button><button class="mini" data-mv="${i}:to:1" aria-label="終點延後一小節">▶</button>
+           <button class="del" data-del="${i}">刪除</button>`
+        : `<button data-go="${i}">從這裡播</button><button data-loop="${i}" aria-pressed="${!!(loop && loop.i === i)}">循環</button>`;
+      el.innerHTML = `<div class="meta">${head}${range}
+        ${s.note && !editing ? `<div class="note">${esc(s.note)}</div>` : ''}
+        <div class="acts">${acts}</div></div><div class="bars"></div>`;
+    }
+    const bars = el.querySelector('.bars');
+    for (let b = from; b <= to; b++){
+      const inLoop = loop && SECS[loop.i] && b >= SECS[loop.i].from && b <= SECS[loop.i].to;
+      const c = document.createElement('button'); c.className = 'bar' + (inLoop ? ' loop' : ''); c.dataset.bar = b;
+      c.innerHTML = `<span class="bn"><span>${b}</span><span class="bt">${mmss(barStart(b))}</span></span>${FILLS.has(b) ? '<span class="fl">▲</span>' : ''}`;
+      c.setAttribute('aria-label', `第 ${b} 小節，${mmss(barStart(b))}${FILLS.has(b) ? '，有變化' : ''}`);
+      bars.appendChild(c); barEls[b] = c;
+    }
+    map.appendChild(el);
+  });
+  nowBar = null;
+  if (editing) fillAddForm();
+}
+$('map').addEventListener('click', e => {
+  const b = e.target.closest('[data-bar]'), g = e.target.closest('[data-go]'), l = e.target.closest('[data-loop]');
+  const mv = e.target.closest('[data-mv]'), del = e.target.closest('[data-del]'), fl = e.target.closest('[data-fill]');
+  if (editing){
+    if (b){ const bar = +b.dataset.bar; if (document.querySelector('input[name=tool]:checked').value === 'split') splitAt(bar); else toggleFill(bar); }
+    if (mv){ const [i, edge, d] = mv.dataset.mv.split(':'); moveEdge(+i, edge, +d); }
+    if (del) deleteSec(+del.dataset.del);
+    if (fl){ const [a, z] = fl.dataset.fill.split(':').map(Number); const ty = el$(`[data-gaptype="${a}:${z}"]`); addSection(a, z, ty ? ty.value : 'interlude'); }
+    return;
+  }
+  if (b) seekTo(barStart(+b.dataset.bar) + 0.01);
+  if (g) seekTo(barStart(SECS[+g.dataset.go].from - 1), true);
+  if (l) toggleLoop(+l.dataset.loop);
+});
+const el$ = q => document.querySelector(q);
+$('map').addEventListener('change', e => {
+  const nm = e.target.closest('[data-nm]'), ty = e.target.closest('[data-ty]'), rf = e.target.closest('[data-rf]'), rt = e.target.closest('[data-rt]');
+  if (nm){ const sec = SECS[+nm.dataset.nm]; sec.name = nm.value.trim() || TYPE[sec.type].name; edited(false); }
+  if (ty){
+    const sec = SECS[+ty.dataset.ty], old = TYPE[sec.type];
+    if (!sec.name || sec.name === old.name || LEGACY_NAME.test(sec.name)) sec.name = TYPE[ty.value].name;
+    sec.type = ty.value; edited(true);
+  }
+  if (rf){ const i = +rf.dataset.rf; setRange(i, Math.round(+rf.value), SECS[i].to, 'from'); }
+  if (rt){ const i = +rt.dataset.rt; setRange(i, SECS[i].from, Math.round(+rt.value), 'to'); }
+});
+function toggleLoop(i){
+  if (loop && loop.i === i){ loop = null; buildMap(); return; }
+  const s = SECS[i]; loop = {i, a: barStart(Math.max(0, s.from - 1)), b: barStart(Math.min(LAST + 1, s.to + 1))};
+  buildMap(); seekTo(loop.a, true);
+}
+
+/* ---------- edit mode ---------- */
+$('editBtn').onclick = () => { editing = !editing; $('editBtn').setAttribute('aria-pressed', editing); $('editTools').hidden = !editing; if (editing && loop) loop = null; buildMap(); tick(true); };
+function recomputeSubs(){
+  const cnt = {};
+  SECS.forEach(sec => {
+    const auto = !sec.sub || /^第 \d+ 次$/.test(sec.sub) || /^\d+ 小節$/.test(sec.sub);
+    if (!auto) return;
+    const t = TYPE[sec.type];
+    if (!t || !t.count) sec.sub = `${sec.to - sec.from + 1} 小節`;
+    else { const k = sec.type + '|' + sec.name; cnt[k] = (cnt[k] || 0) + 1; sec.sub = `第 ${cnt[k]} 次`; }
+  });
+}
+function edited(rebuild){
+  SECS.sort((a, b) => a.from - b.from);
+  SONG.sections = SECS; SONG.fills = [...FILLS].sort((a, b) => a - b); SONG.edited = true;
+  SONG.analysis = Object.assign({}, SONG.analysis, {editedAt: new Date().toISOString().slice(0, 19)});
+  recomputeSubs();
+  try { localStorage.setItem(songKey(ORIG || SONG), JSON.stringify(SONG)); } catch(e){}
+  renderHeader(); if (rebuild !== false) buildMap(); buildStartSel();
+  if (score.ready) drawSectionMarks();
+  $('editToast').textContent = '已存在這台瀏覽器'; lastBeatKey = null; tick(true);
+}
+const clampBar = b => Math.max(1, Math.min(LAST, b));
+// 讓 keep 這一段佔住 [from, to]，其他段落重疊的部分讓出來（必要時切成兩段）
+function claim(keep, from, to){
+  const out = [];
+  SECS.forEach(o => {
+    if (o === keep || o.to < from || o.from > to){ out.push(o); return; }
+    if (o.from < from) out.push(Object.assign({}, o, {to: from - 1}));
+    if (o.to > to) out.push(Object.assign({}, o, {from: to + 1, sub: o.from < from ? '' : o.sub}));
+  });
+  SECS.length = 0; out.forEach(o => SECS.push(o));
+}
+function setRange(i, from, to, edge){
+  const sec = SECS[i]; if (!sec) return;
+  from = clampBar(from || sec.from); to = clampBar(to || sec.to);
+  if (from > to){ if (edge === 'from') from = to; else to = from; }
+  const oldFrom = sec.from, oldTo = sec.to, linked = $('linked').checked;
+  // 相鄰段落跟著動：原本貼在一起的鄰居，交界跟著移
+  if (linked){
+    const prev = SECS.find(o => o !== sec && o.to === oldFrom - 1), next = SECS.find(o => o !== sec && o.from === oldTo + 1);
+    if (prev && from > oldFrom) prev.to = from - 1;
+    if (next && to < oldTo) next.from = to + 1;
+  }
+  sec.from = from; sec.to = to;
+  claim(sec, from, to);
+  edited();
+}
+function moveEdge(i, edge, d){ const sec = SECS[i]; if (!sec) return; if (edge === 'from') setRange(i, sec.from + d, sec.to, 'from'); else setRange(i, sec.from, sec.to + d, 'to'); }
+function deleteSec(i){ if (loop) loop = null; SECS.splice(i, 1); edited(); }
+function addSection(from, to, type){
+  from = clampBar(from); to = clampBar(to); if (from > to) [from, to] = [to, from];
+  const sec = {from, to, type, label: type, name: TYPE[type].name, sub: '', note: '', hard: false};
+  SECS.push(sec); claim(sec, from, to); edited();
+  $('editToast').textContent = `已新增：第 ${from}–${to} 小節 ${TYPE[type].name}`;
+}
+function fillAddForm(){
+  const sel = $('addType'); if (!sel.options.length) sel.innerHTML = typeOptions('verse');
+  if ($('addFrom').value && $('addTo').value) return;
+  const g = blocks().find(b => b.gap);
+  const p = pos(audio.currentTime || 0), cur = clampBar(p.bar >= 1 ? p.bar : 1);
+  $('addFrom').value = g ? g.from : cur; $('addTo').value = g ? g.to : Math.min(LAST, cur + 7);
+}
+$('addSec').onclick = () => {
+  const a = Math.round(+$('addFrom').value), z = Math.round(+$('addTo').value);
+  if (!a || !z){ $('editToast').textContent = '請填起點和終點小節'; return; }
+  addSection(a, z, $('addType').value); $('addFrom').value = ''; $('addTo').value = ''; fillAddForm();
+};
+function toggleFill(bar){ if (FILLS.has(bar)) FILLS.delete(bar); else FILLS.add(bar); edited(); }
+function splitAt(bar){
+  const i = SECS.findIndex(sec => bar > sec.from && bar <= sec.to); if (i < 0){ $('editToast').textContent = '段落的第一小節不能再切'; return; }
+  const sec = SECS[i], ns = {from: bar, to: sec.to, type: sec.type, label: sec.type, name: sec.name, sub: '', note: '', hard: false};
+  sec.to = bar - 1; sec.note = ''; SECS.splice(i + 1, 0, ns); edited();
+}
+function shiftBeat(d){ SONG.bar1Beat = BAR1 = Math.max(0, BAR1 + d); edited(); if (score.ready) syncScore(audio.currentTime || 0, true); }
+function renumber(d){
+  // d = -1: every bar number goes down by one (old bar 2 becomes bar 1)
+  SONG.bar1Beat = BAR1 = BAR1 - d*BPB;
+  SECS.forEach(s => { s.from += d; s.to += d; });
+  FILLS = new Set([...FILLS].map(x => x + d));
+  SONG.lastBar = LAST = LAST + d;
+  for (let k = SECS.length - 1; k >= 0; k--){ const x = SECS[k]; if (x.to < 1 || x.from > LAST) SECS.splice(k, 1); else { x.from = Math.max(1, x.from); x.to = Math.min(LAST, x.to); } }
+  score.firstBar += d; $('firstBar').value = score.firstBar; SONG.score = Object.assign({}, SONG.score, {firstBar: score.firstBar});
+  if (score.osmd) numberMeasures();
+  edited(); if (score.osmd && !$('scoreWrap').hidden) renderScore(); else score.needsRender = true;
+}
+$('beatPrev').onclick = () => shiftBeat(-1); $('beatNext').onclick = () => shiftBeat(1);
+$('numDown').onclick = () => renumber(-1); $('numUp').onclick = () => renumber(1);
+$('copyJson').onclick = () => {
+  const txt = JSON.stringify(Object.assign({}, SONG, {edited: true}), null, 1);
+  const show = () => { const ta = $('jsonOut'); ta.hidden = false; ta.value = txt; ta.focus(); ta.select(); $('editToast').textContent = '自動複製被擋住了，內容已全選，請按 Ctrl+C／⌘C'; };
+  try { navigator.clipboard.writeText(txt).then(() => { $('editToast').textContent = '已複製，貼進 song.json 存檔'; }, show); } catch(e){ show(); }
+};
+$('revert').onclick = () => {
+  if (!ORIG) return; try { localStorage.removeItem(songKey(ORIG)); } catch(e){}
+  setSong(ORIG); $('editToast').textContent = '已還原'; $('notice').hidden = true;
+};
+
+/* ---------- loading files ---------- */
+function idb(){ return withTimeout(new Promise((res, rej) => { const r = indexedDB.open('count-bars', 1); r.onupgradeneeded = () => r.result.createObjectStore('f'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error('blocked')); }), 1500); }
+function withTimeout(pr, ms){ return Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]); }
+async function cachePut(v){ try { const db = await idb(); db.transaction('f', 'readwrite').objectStore('f').put(v, 'last'); } catch(e){} }
+async function cacheGet(){ try { const db = await idb(); return await withTimeout(new Promise((res, rej) => { const q = db.transaction('f').objectStore('f').get('last'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }), 1500); } catch(e){ return null; } }
+function pickJson(files){
+  const js = files.filter(f => /\.json$/i.test(f.name));
+  return js.find(f => f.name.toLowerCase() === 'song.json') || js.find(f => /song\.auto\.json$/i.test(f.name)) || js[0];
+}
+function pickScore(files){ return files.find(f => /\.(mxl|musicxml)$/i.test(f.name)) || files.find(f => /\.xml$/i.test(f.name) && !/container\.xml$/i.test(f.name)); }
+function applySongWithEdits(s){
+  let use = s, msg = '';
+  try { const saved = localStorage.getItem(songKey(s)); if (saved){ const v = JSON.parse(saved); if (validSong(v)){ use = v; msg = `已套用你之前做的修正（${(v.analysis && v.analysis.editedAt || '').replace('T', ' ')}）。`; } } } catch(e){}
+  setSong(use, s);
+  const nt = $('notice');
+  if (msg){ nt.hidden = false; nt.innerHTML = `<span>${esc(msg)}</span><button id="useOrig">改用匯入時的版本</button>`; $('useOrig').onclick = () => $('revert').onclick(); }
+  else nt.hidden = true;
+}
+// 讀 .zip（整個練習資料夾壓縮）：取出 song.json、音檔、譜
+async function zipEntries(file){
+  const buf = new Uint8Array(await file.arrayBuffer()), dv = new DataView(buf.buffer);
+  let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('不是 zip 檔');
+  const count = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true); const out = [];
+  for (let k = 0; k < count; k++){
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const flags = dv.getUint16(p + 8, true), method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), off = dv.getUint32(p + 42, true);
+    const name = new TextDecoder(flags & 0x800 ? 'utf-8' : 'utf-8').decode(buf.subarray(p + 46, p + 46 + nlen)); p += 46 + nlen + xlen + clen;
+    const base = name.split('/').pop();
+    if (!base || name.startsWith('__MACOSX') || base.startsWith('.')) continue;
+    if (!(/\.(json|mxl|musicxml|xml)$/i.test(base) || AUDIO_RE.test(base))) continue;
+    const s0 = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true);
+    const raw = buf.subarray(s0, s0 + csize);
+    const data = method === 0 ? raw : await inflateRaw(raw);
+    out.push(new File([data], base));
+  }
+  return out;
+}
+/* ---------- song library (IndexedDB) ---------- */
+function libDb(){ return withTimeout(new Promise((res, rej) => { const r = indexedDB.open('cb-library', 1); r.onupgradeneeded = () => r.result.createObjectStore('songs', {keyPath: 'id'}); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); r.onblocked = () => rej(new Error('blocked')); }), 4000); }
+async function libTx(mode, fn){ const db = await libDb(); return new Promise((res, rej) => { const tx = db.transaction('songs', mode); const st = tx.objectStore('songs'); let out; const q = fn(st); if (q) q.onsuccess = () => { out = q.result; }; tx.oncomplete = () => res(out); tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error || new Error('儲存空間不足')); }); }
+const libAll = () => libTx('readonly', st => st.getAll());
+const libGet = id => libTx('readonly', st => st.get(id));
+const libPut = rec => libTx('readwrite', st => st.put(rec));
+const libDel = id => libTx('readwrite', st => st.delete(id));
+const songId = s => (s.title || '未命名') + '|' + Math.round(s.duration || 0);
+const MIME = {m4a: 'audio/mp4', aac: 'audio/aac', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', opus: 'audio/ogg', flac: 'audio/flac'};
+function setLibMsg(t, cls){ $('libMsg').innerHTML = t ? `<span class="${cls || ''}">${esc(t)}</span>` : ''; }
+function makeRec(s, audio, score){
+  return {id: songId(s), title: s.title || '未命名', artist: s.artist || '', bpm: s.bpm, lastBar: s.lastBar, sections: (s.sections || []).length,
+          json: JSON.stringify(s), audio: audio ? audio.buf : null, audioType: audio ? audio.type : null, audioName: audio ? audio.name : null,
+          scoreText: score ? score.text : null, scoreName: score ? score.name : null, added: Date.now(), last: 0};
+}
+// 打包好的歌曲 .html（make_bundle.py 產生）
+async function recFromBundle(f){
+  const txt = await f.text();
+  const mj = txt.match(/<script type="application\/json" id="cb-song">([\s\S]*?)<\/script>/);
+  if (!mj) throw new Error(`${f.name} 不是數小節的打包檔`);
+  const s = JSON.parse(mj[1]); if (!validSong(s)) throw new Error(`${f.name} 裡的歌曲資料讀不懂`);
+  const ma = txt.match(/<script type="text\/plain" id="cb-audio" data-mime="([^"]*)" data-name="([^"]*)">([\s\S]*?)<\/script>/);
+  const ms = txt.match(/<script type="text\/plain" id="cb-score" data-name="([^"]*)">([\s\S]*?)<\/script>/);
+  const unesc = x => { const d = document.createElement('textarea'); d.innerHTML = x; return d.value; };
+  const ab = ma && ma[3].replace(/\s+/g, ''), sb = ms && ms[2].replace(/\s+/g, '');
+  return makeRec(s, ab && ab.length > 100 ? {buf: b64Bytes(ab).buffer, type: ma[1] || 'audio/mp4', name: unesc(ma[2])} : null,
+                    sb && sb.length > 100 ? {text: new TextDecoder().decode(b64Bytes(sb)), name: unesc(ms[1])} : null);
+}
+// song.json＋音檔＋鼓譜（散檔或 zip 解開後）
+async function recFromFiles(files){
+  const jf = pickJson(files); let s = null;
+  try { s = JSON.parse(await jf.text()); } catch(e){}
+  if (!validSong(s)) throw new Error(`${jf.name} 讀不懂，請確認是分析腳本產生的 song.json`);
+  const auds = files.filter(f => AUDIO_RE.test(f.name)), pref = (s.audioFiles || []).map(x => x.toLowerCase());
+  auds.sort((a, b) => { const ia = pref.indexOf(a.name.toLowerCase()), ib = pref.indexOf(b.name.toLowerCase()); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
+  const af = auds[0], sf = pickScore(files);
+  let scoreText = null;
+  if (sf){ scoreText = /\.mxl$/i.test(sf.name) ? await mxlText(sf) : await sf.text(); }
+  return makeRec(s, af ? {buf: await af.arrayBuffer(), type: af.type || MIME[(af.name.split('.').pop() || '').toLowerCase()] || 'audio/mpeg', name: af.name} : null,
+                 scoreText ? {text: scoreText, name: sf.name} : null);
+}
+async function openFiles(list){
+  let files = [...list].filter(f => !f.name.startsWith('.'));
+  setLibMsg('匯入中…');
+  try {
+    const recs = [];
+    for (const f of files.filter(f => /\.html?$/i.test(f.name))) recs.push(await recFromBundle(f));
+    files = files.filter(f => !/\.html?$/i.test(f.name));
+    for (const z of files.filter(f => /\.zip$/i.test(f.name))) files = files.concat(await zipEntries(z));
+    files = files.filter(f => !/\.zip$/i.test(f.name));
+    if (files.some(f => /\.json$/i.test(f.name))) recs.push(await recFromFiles(files));
+    else if (files.length && !recs.length) throw new Error('選到的檔案裡沒有 song.json 或打包好的 .html');
+    try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e){}
+    for (const r of recs){
+      const old = await libGet(r.id).catch(() => null); if (old){ r.added = old.added; r.last = old.last; }
+      await libPut(r);
+    }
+    await renderLibrary();
+    setLibMsg(recs.length ? `已加入曲庫：${recs.map(r => r.title).join('、')}` : '沒有可以匯入的歌', 'ok');
+    if (recs.length === 1) openSong(recs[0].id);
+  } catch(e){ setLibMsg(''); showErr('匯入失敗：' + e.message); }
+}
+let delArm = null;
+async function renderLibrary(){
+  let all = [];
+  try { all = await libAll(); } catch(e){ showErr('讀不到曲庫（' + e.message + '）'); }
+  all.sort((a, b) => (b.last || 0) - (a.last || 0) || (b.added || 0) - (a.added || 0));
+  const lastId = (() => { try { return localStorage.getItem('cb-last'); } catch(e){ return null; } })();
+  const box = $('songs');
+  box.innerHTML = all.length ? '' : '<div class="empty">曲庫還是空的。按「＋ 匯入歌曲」加入第一首。</div>';
+  all.forEach(r => {
+    const el = document.createElement('div'); el.className = 'song' + (r.id === lastId ? ' last' : '');
+    const meta = [r.bpm ? `♩=${Math.round(r.bpm)}` : '', r.lastBar ? `${r.lastBar} 小節` : '', r.sections ? `${r.sections} 段` : '',
+                  r.audio ? '' : '沒有音檔', r.scoreText ? '' : '沒有鼓譜', r.last ? '上次 ' + new Date(r.last).toLocaleDateString('zh-TW') : ''].filter(Boolean).join(' · ');
+    el.innerHTML = `<span class="t">${esc(r.title)}${r.artist ? ` <span style="font-weight:400;color:var(--muted);font-size:14px">${esc(r.artist)}</span>` : ''}</span>
+      <span class="m">${esc(meta)}</span>
+      <span class="go"><button data-open="${esc(r.id)}">練習</button><button class="del" data-del="${esc(r.id)}">${delArm === r.id ? '確定刪除' : '刪除'}</button></span>`;
+    box.appendChild(el);
+  });
+  try { const est = await navigator.storage.estimate(); $('libStore').textContent = `${all.length} 首 · 已用 ${(est.usage/1e6).toFixed(1)} MB`; } catch(e){ $('libStore').textContent = `${all.length} 首`; }
+}
+$('songs').addEventListener('click', async e => {
+  const o = e.target.closest('[data-open]'), d = e.target.closest('[data-del]');
+  if (o) openSong(o.dataset.open);
+  if (d){
+    const id = d.dataset.del;
+    if (delArm !== id){ delArm = id; renderLibrary(); setTimeout(() => { if (delArm === id){ delArm = null; renderLibrary(); } }, 4000); return; }
+    delArm = null; await libDel(id); try { localStorage.removeItem('cb-edit:' + id); } catch(e){}
+    setLibMsg('已刪除'); renderLibrary();
+  }
+});
+function showLibrary(){
+  if (quiz && quiz.running) finishQuiz();
+  if (mode !== 'follow') setMode('follow');
+  try { audio.pause(); } catch(e){}
+  $('practice').hidden = true; $('library').hidden = false; $('loader').hidden = true; document.body.classList.add('inlib');
+  $('songTitle').innerHTML = '數小節練習室<small id="songSub">數小節、抓段落、跟著鼓譜練習</small>'; $('facts').innerHTML = ''; $('notice').hidden = true;
+  document.title = '數小節練習室'; renderLibrary(); window.scrollTo(0, 0);
+}
+async function openSong(id){
+  const r = await libGet(id).catch(() => null);
+  if (!r){ showErr('找不到這首歌，可能已被刪除。'); return; }
+  r.last = Date.now(); libPut(r).catch(() => {}); try { localStorage.setItem('cb-last', id); } catch(e){}
+  $('library').hidden = true; $('practice').hidden = false; $('loader').hidden = false; document.body.classList.remove('inlib');
+  applySongWithEdits(JSON.parse(r.json)); applyView();
+  if (r.audio){ const f = new File([r.audio], r.audioName || 'audio', {type: r.audioType || 'audio/mp4'}); folderAudio = [f]; useAudio(f); $('fileHint').textContent = ''; }
+  else { loaded = false; $('play').disabled = true; $('fileHint').textContent = '這首沒有音檔，請重新匯入含音檔的版本。'; }
+  if (r.scoreText){ const txt = r.scoreText; initScore(async () => txt); }
+  else { score.osmd = null; score.ready = false; scoreMsg('這首沒有鼓譜。'); }
+  window.scrollTo(0, 0);
+}
+$('toLib').onclick = showLibrary;
+$('audioSel').onchange = e => { const f = folderAudio[+e.target.value]; if (f){ useAudio(f); cacheGet().then(v => { if (v){ v.audio = f; v.audioName = f.name; cachePut(v); } }); } };
+function useAudio(blob){
+  const wasT = curTime();
+  if (audio.src) try { URL.revokeObjectURL(audio.src); } catch(e){}
+  audio.src = URL.createObjectURL(blob);
+  pendingSeek = wasT || null;
+  // iOS 不會先讀音檔：不等 metadata，直接啟用播放，按下播放時才真正載入
+  loaded = true; $('seek').max = (SONG && SONG.duration) || 600; $('seek').disabled = false; $('play').disabled = false; $('qStart').disabled = false;
+  const onMeta = () => {
+    if (isFinite(audio.duration) && audio.duration > 0) $('seek').max = audio.duration;
+    if (pendingSeek !== null){ try { audio.currentTime = pendingSeek; } catch(e){} pendingSeek = null; }
+    if (SONG && SONG.duration && isFinite(audio.duration) && Math.abs(audio.duration - SONG.duration) > 2)
+      $('fileHint').textContent += `（${blob.name || '音檔'} 長度 ${fmt(audio.duration)}，和分析的 ${fmt(SONG.duration)} 不同，小節可能對不上，可以用頁尾的對齊微調）`;
+    tick(true);
+  };
+  audio.onloadedmetadata = onMeta;
+  audio.onerror = () => { showErr(`音檔 ${blob.name || ''} 播不了，請換成 m4a、mp3 或 wav。`); };
+  try { audio.load(); } catch(e){}
+  tick(true);
+}
+$('folder').addEventListener('change', e => { if (e.target.files.length) openFiles(e.target.files); });
+$('files').addEventListener('change', e => { const fl = [...e.target.files]; e.target.value = ''; if (fl.length) openFiles(fl); });
+async function entryFiles(entry, out, depth){
+  if (entry.isFile) return new Promise(r => entry.file(f => { out.push(f); r(); }, () => r()));
+  if (entry.isDirectory && depth < 3){
+    const rd = entry.createReader();
+    const all = await new Promise(r => { const acc = []; const step = () => rd.readEntries(es => { if (!es.length) r(acc); else { acc.push(...es); step(); } }, () => r(acc)); step(); });
+    for (const en of all) await entryFiles(en, out, depth + 1);
+  }
+}
+document.addEventListener('dragover', e => { e.preventDefault(); $('loader').classList.add('drop'); });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) $('loader').classList.remove('drop'); });
+document.addEventListener('drop', async e => {
+  e.preventDefault(); $('loader').classList.remove('drop');
+  const items = [...(e.dataTransfer.items || [])], out = [];
+  const entries = items.map(it => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
+  if (entries.length){ for (const en of entries) await entryFiles(en, out, 0); }
+  else out.push(...e.dataTransfer.files);
+  if (out.length) openFiles(out);
+});
+
+/* ---------- transport ---------- */
+function ensureCtx(){ try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e){} try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch(e){} }
+function click(accent){
+  if (!actx) return; const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.value = accent ? 1600 : 1000; g.gain.setValueAtTime(accent ? .5 : .28, t); g.gain.exponentialRampToValueAtTime(.001, t + .05);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .06);
+}
+function setPlayIcon(){ $('playIcon').innerHTML = audio.paused ? '<path d="M7 4l13 8-13 8z"/>' : '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'; $('play').setAttribute('aria-label', audio.paused ? '播放' : '暫停'); }
+function togglePlay(){ if (!loaded) return; ensureCtx(); if (audio.paused){ const pr = audio.play(); if (pr && pr.catch) pr.catch(err => showErr('播放失敗：' + err.message)); } else audio.pause(); }
+function seekTo(t, play){
+  if (!loaded) return; t = Math.max(0, t);
+  if (audio.readyState < 1){ pendingSeek = t; } else { try { audio.currentTime = t; } catch(e){ pendingSeek = t; } }
+  lastBeatKey = null;
+  if (play){ ensureCtx(); const pr = audio.play(); if (pr && pr.catch) pr.catch(err => showErr('播放失敗：' + err.message)); }
+  tick(true);
+}
+function curTime(){ return pendingSeek !== null ? pendingSeek : (audio.currentTime || 0); }
+$('play').onclick = togglePlay;
+const nowBarNo = () => { const p = pos(curTime()); return Math.max(0, Math.min(LAST, p.bar)); };
+$('prevBar').onclick = () => { if (!loaded) return; const p = pos(curTime()); const target = p.frac > 0.12 || !audio.paused && p.frac > 0.25 ? p.bar : p.bar - 1; seekTo(barStart(Math.max(0, target)) + 0.01, !audio.paused); };
+$('nextBar').onclick = () => { if (!loaded) return; seekTo(barStart(Math.min(LAST, nowBarNo() + 1)) + 0.01, !audio.paused); };
+$('secStart').onclick = () => { if (!loaded) return; const s = secOf(nowBarNo()); seekTo(barStart(s ? s.from : nowBarNo()) + 0.01, !audio.paused); };
+$('clickBtn').onclick = () => { const c = $('click'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); };
+$('click').addEventListener('change', () => { $('clickBtn').setAttribute('aria-pressed', $('click').checked); if ($('click').checked) ensureCtx(); });
+let wake = null;
+async function holdScreen(on){
+  try {
+    if (on && !wake && navigator.wakeLock){ wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+    if (!on && wake){ await wake.release(); wake = null; }
+  } catch(e){ wake = null; }
+}
+audio.onplay = () => { setPlayIcon(); holdScreen(true); };
+audio.onpause = () => { setPlayIcon(); holdScreen(false); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !audio.paused) holdScreen(true); });
+audio.onended = () => { setPlayIcon(); if (quiz && quiz.running) finishQuiz(); };
+$('seek').addEventListener('input', e => seekTo(+e.target.value));
+const setRate = v => { audio.playbackRate = +v; $('rate').value = v; $('rate2').value = v; };
+$('rate').onchange = e => setRate(e.target.value); $('rate2').onchange = e => setRate(e.target.value);
+$('offset').onchange = e => { offset = (+e.target.value || 0)/1000; if (SONG){ SONG.offsetMs = Math.round(offset*1000); edited(); } };
+$('offReset').onclick = () => { $('offset').value = 0; $('offset').onchange({target: $('offset')}); };
+
+let lastBeatKey = null, nowBar = null, lights = [];
+const phr = [...document.querySelectorAll('#phrase span')];
+function tick(force){
+  if (!SONG) return;
+  const t = curTime();
+  if (loop && !audio.paused && t >= loop.b) audio.currentTime = loop.a;
+  $('seek').value = t; $('time').textContent = fmt(t) + ' / ' + fmt(audio.duration || SONG.duration);
+  const {bar, beat} = pos(t);
+  const key = bar + ':' + beat;
+  if (key !== lastBeatKey || force){
+    if (!force && !audio.paused && lastBeatKey !== null && $('click').checked && mode === 'follow' && bar >= 0 && bar <= LAST && (beat === 1 || !$('clickOne').checked)) click(beat === 1);
+    lastBeatKey = key;
+    const hide = mode !== 'follow' && quiz && quiz.running;
+    const showL = !hide || $('showLights').checked;
+    lights.forEach((l, i) => l.classList.toggle('on', showL && bar >= 0 && bar <= LAST && i === beat - 1));
+    const inSong = bar >= 1 && bar <= LAST;
+    phr.forEach((p, i) => p.classList.toggle('on', !hide && inSong && i === (bar - 1) % 4));
+    $('phraseLab').textContent = hide ? '4 小節一句' : inSong ? `這句的第 ${(bar - 1) % 4 + 1} 小節` : '4 小節一句';
+    const pre = (SONG.soundStart ?? 0) + offset - 0.05;
+    if (hide){ $('barNum').textContent = '?'; $('beatLab').textContent = '自己數'; $('secName').innerHTML = '段落：<b>（測驗中）</b>'; }
+    else if (bar < 0 || (bar === 0 && t < pre)){ $('barNum').textContent = '–'; $('beatLab').textContent = loaded ? '還沒進拍' : '尚未播放'; $('secName').innerHTML = '段落：<b>—</b>'; }
+    else if (bar === 0){ $('barNum').textContent = '0'; $('beatLab').textContent = `第 ${beat} 拍 · 預備拍`; $('secName').innerHTML = '段落：<b>預備拍</b>'; }
+    else if (bar > LAST){ $('barNum').textContent = '–'; $('beatLab').textContent = '歌曲結束'; $('secName').innerHTML = '段落：<b>—</b>'; }
+    else { const s = secOf(bar); $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = s ? `段落：<b>${esc(secLabel(s))}</b> · 這段第 ${bar - s.from + 1}/${s.to - s.from + 1} 小節` : '段落：<b>—</b>'; }
+    if (nowBar !== bar){ if (barEls[nowBar]) barEls[nowBar].classList.remove('now'); if (!hide && barEls[bar]) barEls[bar].classList.add('now'); nowBar = bar; }
+  }
+  if (quiz && quiz.running) quizTick(t);
+  if (score.ready && !$('scoreWrap').hidden) syncScore(t);
+}
+(function loopRAF(){ tick(false); requestAnimationFrame(loopRAF); })();
+
+/* ---------- modes + views ---------- */
+const MODES = {follow:'m-follow', sec:'m-sec', phrase:'m-phrase'};
+let answersVisible = true, view = 'score';
+try { if (localStorage.getItem('cb-view') === 'map') view = 'map'; } catch(e){}
+function showMap(v){ answersVisible = v; applyView(); }
+function applyView(){
+  const showS = answersVisible && view === 'score', showM = answersVisible && view === 'map';
+  $('scoreWrap').hidden = !showS; $('mapWrap').hidden = !showM; $('hiddenMap').hidden = answersVisible;
+  $('v-score').setAttribute('aria-pressed', view === 'score'); $('v-map').setAttribute('aria-pressed', view === 'map');
+  if (showS && score.osmd && score.needsRender) renderScore();
+}
+$('v-score').onclick = () => { view = 'score'; try { localStorage.setItem('cb-view', view); } catch(e){} applyView(); };
+$('v-map').onclick = () => { view = 'map'; try { localStorage.setItem('cb-view', view); } catch(e){} applyView(); };
+function setMode(m){
+  if (quiz && quiz.running) finishQuiz();
+  mode = m; Object.entries(MODES).forEach(([k, id]) => $(id).setAttribute('aria-pressed', k === m));
+  $('panelFollow').hidden = m !== 'follow'; $('panelQuiz').hidden = m === 'follow';
+  $('dockTap').hidden = m === 'follow'; document.body.classList.toggle('quizzing', m !== 'follow');
+  $('results').hidden = true; $('toast').innerHTML = '';
+  if (m !== 'follow' && editing) $('editBtn').onclick();
+  showMap(m === 'follow');
+  const nb = SECS.filter(x => x.from > 1).length, hard = SECS.filter(x => x.from > 1 && x.hard).length;
+  if (m === 'sec'){
+    $('quizIntro').innerHTML = `答案和計數器都會藏起來。每次覺得<b>新段落開始</b>（鼓換打法、整體變大或變小、和弦換路線）就按一下。在段落第 1 拍前後 1 拍內按到算命中。一共 ${nb} 個交界${hard ? `，有 ${hard} 個比較難` : ''}。`;
+    $('tapLab').textContent = '新段落！';
+  } else if (m === 'phrase'){
+    $('quizIntro').innerHTML = '每次覺得<b>新的 4 小節開始</b>就按一下，也就是自己數到「<b>1</b>-2-3-4、2-2-3-4、3-2-3-4、4-2-3-4」之後回到 1 的那一下。訣竅：第 4 小節尾巴常有過門，過門後面就是答案。';
+    $('tapLab').textContent = '新的一句！';
+  }
+  if (m !== 'follow' && loop){ loop = null; buildMap(); }
+  tick(true);
+}
+Object.entries(MODES).forEach(([k, id]) => $(id).onclick = () => setMode(k));
+function buildStartSel(){
+  const sel = $('startSec'), cur = sel.value; sel.innerHTML = '';
+  SECS.forEach((s, i) => { const o = document.createElement('option'); o.value = s.from; o.textContent = i === 0 ? '歌曲開頭' : `第 ${s.from} 小節（${secLabel(s)}）`; sel.appendChild(o); });
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+/* ---------- quiz ---------- */
+function targetsFor(m, startBar){
+  if (m === 'sec') return SECS.filter(s => s.from > startBar).map(s => ({bar: s.from, label: secLabel(s) + ' 開始', hard: !!s.hard}));
+  const out = []; for (let b = 1; b <= LAST; b += 4) if (b > startBar){ const s = secOf(b); out.push({bar: b, label: `第 ${(b - 1)/4 + 1} 句${s ? '（' + s.name + '）' : ''}`}); } return out;
+}
+$('qStart').onclick = () => {
+  if (!loaded) return;
+  const startBar = +$('startSec').value;
+  quiz = {mode, startBar, targets: targetsFor(mode, startBar).map(x => ({...x, T: barStart(x.bar), state: null, tap: null})), taps: [], maxT: 0, running: true};
+  if (loop){ loop = null; buildMap(); }
+  $('results').hidden = true; $('toast').innerHTML = ''; $('tap').disabled = false; $('qEnd').disabled = false; $('qStart').textContent = '重新開始';
+  showMap(false);
+  seekTo(startBar <= 1 ? 0 : barStart(startBar - 1), true);
+};
+$('qEnd').onclick = () => { if (quiz && quiz.running) finishQuiz(); };
+function tapNow(){
+  if (!quiz || !quiz.running || audio.paused) return;
+  const t = audio.currentTime, tap = {t, used: false}; quiz.taps.push(tap);
+  $('tap').classList.add('hit'); setTimeout(() => $('tap').classList.remove('hit'), 90);
+  const tg = quiz.targets.find(x => { const d = (t - x.T)/beatLen(x.T); return !x.state && d >= -1 && d <= 1.5; });
+  if (tg){ tg.state = 'hit'; tg.tap = t; tap.used = true; if ($('instant').checked) say(`✓ 第 ${tg.bar} 小節 · ${tg.label}（${early(t - tg.T, tg.T)}）`, 'ok'); }
+  else if ($('instant').checked){ const p = pos(t); say(`這裡不是答案（你按在第 ${p.bar} 小節第 ${p.beat} 拍）`, 'no'); }
+}
+function early(d, T){ const b = d/beatLen(T); if (Math.abs(b) < .25) return '剛好'; return (b < 0 ? '早 ' : '晚 ') + Math.abs(b).toFixed(1) + ' 拍'; }
+function quizTick(t){
+  quiz.maxT = Math.max(quiz.maxT, t);
+  quiz.targets.forEach(x => { if (!x.state && (t - x.T)/beatLen(x.T) > 1.5){ x.state = 'miss'; if ($('instant').checked) say(`錯過：第 ${x.bar} 小節 · ${x.label}`, 'no'); } });
+}
+function say(msg, cls){ $('toast').innerHTML = `<span class="${cls || ''}">${esc(msg)}</span>`; }
+$('tap').addEventListener('pointerdown', e => { e.preventDefault(); tapNow(); });
+$('tap').addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,select,textarea')) return;
+  if (e.code === 'Space'){ e.preventDefault(); if (mode !== 'follow' && quiz && quiz.running) tapNow(); else togglePlay(); }
+});
+function finishQuiz(){
+  audio.pause(); quiz.running = false; $('tap').disabled = true; $('qEnd').disabled = true; $('qStart').textContent = '開始測驗';
+  const end = quiz.maxT;
+  const tg = quiz.targets.filter(x => x.T <= end - 0.2 || x.state);
+  tg.forEach(x => { if (x.state !== 'hit'){ const L = barLen(x.bar); const c = quiz.taps.filter(p => !p.used && Math.abs(p.t - x.T) <= L).sort((a, b) => Math.abs(a.t - x.T) - Math.abs(b.t - x.T))[0]; if (c){ c.used = true; x.state = 'close'; x.tap = c.t; } else x.state = 'miss'; } });
+  const extras = quiz.taps.filter(p => !p.used);
+  const hit = tg.filter(x => x.state === 'hit').length, close = tg.filter(x => x.state === 'close').length;
+  const a = quiz.startBar <= 1 ? 0 : barStart(quiz.startBar - 1), span = Math.max(1, end - a);
+  const X = t => ((t - a)/span*100).toFixed(2) + '%';
+  const col = {hit: 'var(--good)', close: 'var(--warn)', miss: 'var(--bad)'};
+  let strip = tg.map(x => `<i style="left:${X(x.T)}" title="第 ${x.bar} 小節"></i>`).join('');
+  strip += tg.filter(x => x.tap).map(x => `<u style="left:${X(x.tap)};background:${col[x.state]}"></u>`).join('');
+  strip += extras.map(p => `<u style="left:${X(p.t)};background:var(--muted)"></u>`).join('');
+  const rows = tg.map(x => `<div><span style="color:${col[x.state]}">${x.state === 'hit' ? '✓' : x.state === 'close' ? '≈' : '✗'}</span><span class="mono">第 ${x.bar} 小節</span><span>${esc(x.label)}${x.hard ? ' <span style="color:var(--muted);font-size:12px">（難）</span>' : ''}</span><span class="d">${x.tap ? early(x.tap - x.T, x.T) : '沒按'}</span></div>`).join('')
+    + extras.map(p => { const q = pos(p.t); return `<div><span style="color:var(--muted)">·</span><span class="mono">第 ${q.bar} 小節</span><span>多按的（第 ${q.beat} 拍）</span><span class="d">${fmt(p.t)}</span></div>`; }).join('');
+  const r = $('results'); r.hidden = false;
+  r.innerHTML = tg.length ? `<div class="score"><div><b>${hit}/${tg.length}</b> 命中</div><div><b style="color:var(--warn)">${close}</b> 差一點（1 小節內）</div><div><b style="color:var(--muted)">${extras.length}</b> 多按</div></div>
+    <div class="strip">${strip}</div>
+    <div class="legend"><span>直線＝正確位置</span><span><i class="dot" style="background:var(--good)"></i>命中</span><span><i class="dot" style="background:var(--warn)"></i>差一點</span><span><i class="dot" style="background:var(--muted)"></i>多按</span></div>
+    <div class="rlist">${rows}</div>
+    <p style="margin:0;font-size:13.5px;color:var(--muted)">「差一點」的地方，到小節地圖按「循環」多聽幾次那個交界。如果你很確定答案本身錯了，地圖裡可以「修正」。</p>`
+    : '<p style="margin:0">這次播放範圍內還沒有答案點，多聽一點再按「看結果」。</p>';
+  showMap(true); tick(true);
+  r.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+
+/* ---------- drum score (OpenSheetMusicDisplay) ---------- */
+function scoreMsg(t){ $('score').innerHTML = `<div class="msg">${t}</div>`; score.ready = false; }
+function b64Bytes(b64){ const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+async function gunzipText(b64){
+  if (window.fflate) return window.fflate.strFromU8(window.fflate.gunzipSync(b64Bytes(b64)));
+  const ds = new Blob([b64Bytes(b64)]).stream().pipeThrough(new DecompressionStream('gzip')); return await new Response(ds).text();
+}
+// 譜裡的影片時間標記（1:08、2:04:6 這類）由播放游標取代，拿掉以免和段落色條重疊
+function dropTimeMarks(xml){
+  try {
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    if (doc.querySelector('parsererror')) return xml;
+    let n = 0;
+    doc.querySelectorAll('direction words').forEach(w => { if (/^\s*\d+:\d{2}(:\d+)?\s*$/.test(w.textContent)){ const d = w.closest('direction'); if (d){ d.remove(); n++; } } });
+    return n ? new XMLSerializer().serializeToString(doc) : xml;
+  } catch(e){ return xml; }
+}
+// 讀 .mxl（zip）：自己解壓，失敗再交給 OSMD
+async function inflateRaw(bytes){
+  if (window.fflate) return window.fflate.inflateSync(bytes);
+  if (!window.DecompressionStream) throw new Error('這個瀏覽器不支援解壓縮，請改選個別檔案');
+  const ds = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw')); return new Uint8Array(await new Response(ds).arrayBuffer());
+}
+function decodeXml(u){ if (u[0] === 0xFF && u[1] === 0xFE) return new TextDecoder('utf-16le').decode(u); if (u[0] === 0xFE && u[1] === 0xFF) return new TextDecoder('utf-16be').decode(u); return new TextDecoder('utf-8').decode(u); }
+async function mxlText(file){
+  const buf = new Uint8Array(await file.arrayBuffer()), dv = new DataView(buf.buffer);
+  let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('not a zip');
+  const count = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true); const ents = {};
+  for (let k = 0; k < count; k++){
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), nlen = dv.getUint16(p + 28, true), xlen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true), off = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(buf.subarray(p + 46, p + 46 + nlen)); ents[name] = {method, csize, off}; p += 46 + nlen + xlen + clen;
+  }
+  const read = async n => { const en = ents[n]; const lh = en.off, s0 = lh + 30 + dv.getUint16(lh + 26, true) + dv.getUint16(lh + 28, true); const raw = buf.subarray(s0, s0 + en.csize); return en.method === 0 ? raw : await inflateRaw(raw); };
+  let root = null;
+  if (ents['META-INF/container.xml']){ const m = decodeXml(await read('META-INF/container.xml')).match(/full-path="([^"]+)"/); if (m && ents[m[1]]) root = m[1]; }
+  if (!root) root = Object.keys(ents).find(n => /\.(xml|musicxml)$/i.test(n) && !n.startsWith('META-INF'));
+  if (!root) throw new Error('no score inside');
+  return decodeXml(await read(root));
+}
+// 回傳一個「取得譜內容」的函式：.mxl 先自己解壓（失敗就把原檔交給 OSMD），其他當文字讀
+const scoreSource = (f, name) => /\.mxl$/i.test(name || f.name || '') ? async () => { try { return await mxlText(f); } catch(e){ console.warn('mxl unzip failed, fallback', e); return f; } } : () => f.text();
+async function initScore(src){
+  score.ready = false; score.osmd = null;
+  if (!window.opensheetmusicdisplay){ scoreMsg('鼓譜元件沒有載入成功，重新整理看看。計數、測驗和小節地圖照常可用。'); return; }
+  const host = $('score'); host.innerHTML = '<div class="msg">鼓譜載入中…</div>';
+  try {
+    let data = typeof src === 'function' ? await src() : src;
+    if (typeof data === 'string') data = dropTimeMarks(data);
+    host.innerHTML = '';
+    const o = new opensheetmusicdisplay.OpenSheetMusicDisplay(host, {
+      autoResize: false, backend: 'svg', drawTitle: false, drawSubtitle: false, drawComposer: false, drawLyricist: false, drawCredits: false, drawPartNames: false,
+      drawMeasureNumbers: true, measureNumberInterval: 1, useXMLMeasureNumbers: true, followCursor: false,
+      cursorsOptions: [{type: 3, color: '#f0b429', alpha: .22, follow: false}, {type: 0, color: '#c2423a', alpha: .5, follow: false}]
+    });
+    await o.load(data);
+    score.osmd = o; numberMeasures();
+    score.needsRender = true;
+    if (!$('scoreWrap').hidden) renderScore();
+  } catch(e){ console.error(e); scoreMsg('這份譜讀不進來（' + esc((e && e.message) || e) + '）。請從 MuseScore 匯出成 MusicXML 再試一次。'); }
+}
+function numberMeasures(){ score.osmd.Sheet.SourceMeasures.forEach((m, i) => { m.MeasureNumberXML = i + score.firstBar; }); }
+function renderScore(){
+  const o = score.osmd; if (!o) return;
+  const w = $('score').clientWidth; if (!w){ score.needsRender = true; return; }
+  try {
+    o.zoom = (w < 420 ? 0.46 : w < 560 ? 0.52 : 0.65) * zoomF;
+    o.render();
+    score.width = w; score.needsRender = false;
+    const c0 = o.cursors[0];
+    o.cursors.forEach(c => { c.show(); c.reset(); });
+    const st = []; let g = 0;
+    while (!c0.iterator.EndReached && g++ < 50000){ st.push(c0.iterator.currentTimeStamp.RealValue); c0.iterator.moveToNextVisibleVoiceEntry(false); }
+    score.stamps = st;
+    o.cursors.forEach(c => c.reset()); score.step = 0; score.lastTop = null;
+    score.measAbs = o.Sheet.SourceMeasures.map(m => m.AbsoluteTimestamp.RealValue);
+    score.measDur = o.Sheet.SourceMeasures.map(m => m.Duration.RealValue);
+    score.ready = true;
+    drawSectionMarks();
+    syncScore(audio.currentTime || 0, true);
+  } catch(e){ console.error(e); scoreMsg('鼓譜畫不出來（' + esc((e && e.message) || e) + '）'); }
+}
+function cursorLayer(){
+  const c = score.osmd && score.osmd.cursors[0], p = c && c.cursorElement && c.cursorElement.parentElement;
+  if (p && getComputedStyle(p).position === 'static') p.style.position = 'relative';
+  return p;
+}
+function gm(i){ const row = score.osmd.GraphicSheet.MeasureList[i]; return row && row.find(x => x); }
+function drawSectionMarks(){
+  const layer = cursorLayer(); if (!layer) return;
+  layer.querySelectorAll('.ovl-strip,.ovl-lab,.ovl-time').forEach(e => e.remove());
+  const z = score.osmd.zoom * 10, n = score.osmd.Sheet.SourceMeasures.length, labW = {}, labs = [];
+  if ($('secMarks').checked) SECS.forEach(s => {
+    const col = `var(${PAPER[s.type] || '--pX'})`;
+    for (let b = s.from; b <= s.to; b++){
+      const i = b - score.firstBar; if (i < 0 || i >= n) continue;
+      const m = gm(i); if (!m) continue;
+      const p = m.PositionAndShape, x = p.AbsolutePosition.x * z, y = p.AbsolutePosition.y * z, w = p.Size.width * z;
+      const st = document.createElement('div'); st.className = 'ovl-strip';
+      st.style.cssText = `left:${x + 1}px;top:${y - 5.4*z}px;width:${Math.max(0, w - 2)}px;background:${col}`;
+      layer.appendChild(st);
+      if (b === s.from){
+        const lab = document.createElement('div'); lab.className = 'ovl-lab'; lab.textContent = s.name + (s.sub ? ' · ' + s.sub : '');
+        if ($('timeMarks').checked){ const tm = document.createElement('span'); tm.style.cssText = 'font-family:var(--f-mono);font-weight:500;opacity:.85;margin-left:6px'; tm.textContent = mmss(barStart(b)); lab.appendChild(tm); }
+        lab.style.cssText = `left:${x + 1}px;top:${y - 5.4*z}px;background:${col}`; layer.appendChild(lab);
+        labW[i] = true; labs.push({y, left: x + 1, right: x + 1 + lab.offsetWidth});
+      }
+    }
+  });
+  if ($('timeMarks').checked){
+    // 每小節開頭、段落色條上方標出歌曲時間；段落第一小節的時間寫在段落名稱裡
+    for (let i = 0; i < n; i++){
+      if (labW[i]) continue;
+      const m = gm(i); if (!m) continue;
+      const p = m.PositionAndShape, x = p.AbsolutePosition.x * z, y = p.AbsolutePosition.y * z, w = p.Size.width * z;
+      let left = x + 2;
+      // 前一小節的段落名稱太長、蓋到這裡時，時間往右挪；挪不下就省略（小節地圖裡還看得到）
+      const hit = labs.find(L => Math.abs(L.y - y) < 2 && L.left < x && L.right + 6 > left);
+      if (hit){ left = hit.right + 6; if (left + 36 > x + w) continue; }
+      const el = document.createElement('div'); el.className = 'ovl-time'; el.textContent = mmss(barStart(i + score.firstBar));
+      el.style.cssText = `left:${left}px;top:${y - 5.4*z - 3}px;transform:translateY(-100%)`;
+      layer.appendChild(el);
+    }
+  }
+}
+function scorePos(t){
+  const p = pos(t), i = p.bar - score.firstBar;
+  if (i < 0) return -1;
+  if (i >= score.measAbs.length) return 1e9;
+  return score.measAbs[i] + p.frac * score.measDur[i];
+}
+function syncScore(t, force){
+  const o = score.osmd; if (!o || !score.ready || !score.stamps.length) return;
+  const ps = scorePos(t), st = score.stamps;
+  let k = 0;
+  if (ps >= 0){ let lo = 0, hi = st.length - 1; while (lo <= hi){ const mid = (lo + hi) >> 1; if (st[mid] <= ps + 1e-6){ k = mid; lo = mid + 1; } else hi = mid - 1; } }
+  if (k === score.step && !force) return;
+  if (k < score.step || force){ o.cursors.forEach(c => c.reset()); score.step = 0; }
+  const from = score.step;
+  o.cursors.forEach(c => { for (let j = from; j < k; j++) c.iterator.moveToNextVisibleVoiceEntry(false); c.update(); });
+  score.step = k;
+  followScroll();
+}
+function followScroll(){
+  if (!$('follow').checked || audio.paused) return;
+  const el = score.osmd.cursors[0].cursorElement; if (!el) return;
+  if (el.style.top === score.lastTop) return;
+  score.lastTop = el.style.top;
+  const r = el.getBoundingClientRect(); if (!r.height) return;
+  const top = document.querySelector('.transport').getBoundingClientRect().bottom + 12;
+  const bottom = $('dock').getBoundingClientRect().top - 12;
+  if (r.top < top || r.bottom > bottom)
+    window.scrollBy({top: r.top - top - 8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+}
+$('score').addEventListener('click', e => {
+  if (!score.ready) return; const layer = cursorLayer(); if (!layer) return;
+  const rc = layer.getBoundingClientRect(), z = score.osmd.zoom * 10;
+  const ux = (e.clientX - rc.left)/z, uy = (e.clientY - rc.top)/z, n = score.osmd.Sheet.SourceMeasures.length;
+  for (let i = 0; i < n; i++){
+    const m = gm(i); if (!m) continue; const p = m.PositionAndShape;
+    if (ux >= p.AbsolutePosition.x && ux <= p.AbsolutePosition.x + p.Size.width && uy >= p.AbsolutePosition.y - 5 && uy <= p.AbsolutePosition.y + 10){
+      const bar = i + score.firstBar;
+      if (loaded) seekTo(barStart(bar) + 0.01); else $('fileHint').textContent = `先開啟音檔，才能跳到第 ${bar} 小節。`; $('loader').scrollIntoView({behavior: 'smooth', block: 'center'});
+      return;
+    }
+  }
+});
+let rsT; window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => {
+  if (!score.osmd) return; const w = $('score').clientWidth;
+  if (Math.abs(w - score.width) > 8){ if ($('scoreWrap').hidden || !w) score.needsRender = true; else renderScore(); }
+}, 250); });
+$('secMarks').onchange = () => { if (score.ready) drawSectionMarks(); };
+function setZoom(f){ zoomF = Math.max(0.6, Math.min(2, Math.round(f*100)/100)); try { localStorage.setItem('cb-zoom', zoomF); } catch(e){} if (score.osmd) renderScore(); }
+$('zoomIn').onclick = () => setZoom(zoomF * 1.15); $('zoomOut').onclick = () => setZoom(zoomF / 1.15);
+$('timeMarks').onchange = () => { if (score.ready) drawSectionMarks(); };
+$('firstBar').onchange = e => {
+  score.firstBar = Math.round(+e.target.value || 0);
+  if (SONG){ SONG.score = Object.assign({}, SONG.score, {firstBar: score.firstBar}); }
+  if (score.osmd){ numberMeasures(); renderScore(); }
+};
+$('scoreFile').onchange = e => { const f = e.target.files[0]; if (f) initScore(scoreSource(f)); };
+
+/* ---------- start ---------- */
+showLibrary();
+if ('serviceWorker' in navigator && location.protocol !== 'file:'){
+  navigator.serviceWorker.register('sw.js').catch(e => console.warn('service worker', e));
+}
+})();
+</script>
+
+</body>
+</html>

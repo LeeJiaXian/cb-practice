@@ -1,0 +1,8 @@
+.DS_Store
+*.zip
+*.wav
+*.mp3
+*.m4a
+*.mxl
+song*.json
+.claude/
