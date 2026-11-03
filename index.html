@@ -296,6 +296,42 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .dock .play{width:60px;height:60px}
 .dock-tap .tap{width:100%;min-height:72px;font-size:22px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .dock-tap .tap:disabled{opacity:.45}
+.tempoNote{font-size:13px;color:var(--muted)}
+.metro{display:grid;gap:8px;padding:8px 2px 6px;border-bottom:1px solid var(--rule);margin-bottom:2px}
+.metro .mhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.metro .mhead b{font-size:15px}
+.metro .mpresets{display:flex;gap:6px;flex-wrap:wrap}
+.metro .mpresets button{border:1px solid var(--rule);background:var(--paper);border-radius:999px;min-height:34px;padding:0 12px;font-size:13px}
+.metro .mpresets button[aria-pressed=true]{border-color:var(--brass);background:var(--brass-soft)}
+.metro .bpmrow{display:grid;grid-template-columns:auto auto 1fr auto auto;gap:6px;align-items:center}
+.metro .bpmrow>button{min-width:48px;min-height:44px;border-radius:8px;border:1.5px solid var(--rule);background:var(--card);font-weight:700;font-family:var(--f-mono)}
+.metro .bpmbox{display:flex;align-items:baseline;justify-content:center;gap:6px}
+.metro .bpmbox input{width:3.4em;text-align:center;font-family:var(--f-display);font-weight:800;font-size:34px;border:0;border-bottom:2px solid var(--rule);background:transparent;color:var(--ink);padding:0}
+.metro .bpmbox span{color:var(--muted);font-size:13px}
+.metro .mtoggles{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.metro .tg{min-height:38px;border-radius:8px;border:1.5px solid var(--rule);background:var(--card);padding:0 12px;font-weight:500}
+.metro .tg[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.metro #tgMute[aria-pressed=true]{background:var(--bad);border-color:var(--bad);color:#fff}
+.metro .mvol{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);flex:1 1 140px}
+.metro .mvol input{flex:1;accent-color:var(--brass)}
+.metro .mnote{font-size:12px;color:var(--muted);margin:0}
+
+/* ===== mixer sheet ===== */
+.dock-btns{grid-template-columns:repeat(6,1fr)!important}
+.mixer{display:grid;gap:6px;padding:8px 2px 4px;border-bottom:1px solid var(--rule);margin-bottom:2px;max-height:46vh;overflow:auto}
+.mixer .mxhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.mixer .mxhead b{font-size:15px}
+.mixer .presets{display:flex;gap:6px;flex-wrap:wrap}
+.mixer .presets button{border:1px solid var(--rule);background:var(--paper);border-radius:999px;min-height:34px;padding:0 12px;font-size:13px}
+.mxrow{display:grid;grid-template-columns:4.6em 40px 40px 1fr 3.2em;gap:8px;align-items:center}
+.mxrow .nm{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mxrow button{min-height:36px;border-radius:7px;border:1.5px solid var(--rule);background:var(--card);font-weight:700;font-size:13px}
+.mxrow button.m[aria-pressed=true]{background:var(--bad);border-color:var(--bad);color:#fff}
+.mxrow button.s[aria-pressed=true]{background:var(--brass);border-color:var(--brass);color:#fff}
+.mxrow input[type=range]{width:100%;accent-color:var(--brass);height:30px}
+.mxrow .pc{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-align:right}
+.mxrow.off .nm,.mxrow.off .pc{opacity:.45}
+.mixer .mxnote{font-size:12px;color:var(--muted);margin:0}
 .library{padding-block:8px 40px}
 .libhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:10px}
 .libhead h2{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:.01em}
@@ -374,9 +410,8 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
     <p>邊聽邊看上面的計數器，跟著唸「<b>1</b>-2-3-4、<b>2</b>-2-3-4…」。點譜上或地圖上任何一小節可以跳過去。</p>
     <div class="opts">
       <span class="viewsw" role="group" aria-label="顯示"><button id="v-score" aria-pressed="true">鼓譜</button><button id="v-map" aria-pressed="false">小節地圖</button></span>
-      <label><input type="checkbox" id="click"> 節拍器</label>
-      <label><input type="checkbox" id="clickOne"> 只響第 1 拍</label>
-      <label>速度 <select id="rate"><option value="0.75">0.75×</option><option value="0.85">0.85×</option><option value="1" selected>1×</option></select></label>
+      <span class="tempoNote">節拍器、速度、歌曲靜音：按下方「節拍器」</span>
+      <span hidden><input type="checkbox" id="click"><input type="checkbox" id="clickOne"><select id="rate"><option value="1" selected>1×</option></select></span>
     </div>
   </section>
 
@@ -386,7 +421,7 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
       <label>從 <select id="startSec"></select> 開始</label>
       <label><input type="checkbox" id="showLights" checked> 顯示拍子燈</label>
       <label><input type="checkbox" id="instant" checked> 即時提示對錯</label>
-      <label>速度 <select id="rate2"><option value="0.75">0.75×</option><option value="0.85">0.85×</option><option value="1" selected>1×</option></select></label>
+      <span class="tempoNote">速度：按下方「節拍器」調整</span><span hidden><select id="rate2"><option value="1" selected>1×</option></select></span>
     </div>
     <div class="qbtns">
       <button class="ghost" id="qStart" disabled>開始測驗</button>
@@ -404,7 +439,7 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
     </div>
     <div class="scorecard"><div id="score"><div class="msg">鼓譜載入中…</div></div></div>
     <div class="scoreopts">
-      <label><input type="checkbox" id="follow" checked> 播放時自動捲動</label>
+      <label>播放時 <select id="followMode" aria-label="鼓譜跟隨方式"><option value="center">保持在中間</option><option value="page">翻頁</option><option value="off">不捲動</option></select></label><input type="checkbox" id="follow" checked hidden>
       <label><input type="checkbox" id="secMarks" checked> 段落色條</label>
       <label><input type="checkbox" id="timeMarks" checked> 譜上顯示時間</label>
       <label class="filebtn" for="scoreFile">換一份譜</label><input type="file" id="scoreFile" hidden>
@@ -463,6 +498,35 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
     <div class="dock-tap" id="dockTap" hidden>
       <button class="tap" id="tap" disabled><span id="tapLab">新段落！</span></button>
     </div>
+    <div class="metro" id="metroSheet" hidden>
+      <div class="mhead"><b>節拍器與速度</b><span class="mpresets" id="tempoPresets">
+        <button data-pct="0.6">60%</button><button data-pct="0.75">75%</button><button data-pct="0.85">85%</button><button data-pct="1">原速</button></span></div>
+      <div class="bpmrow">
+        <button id="bpmM10" aria-label="慢 10">−10</button><button id="bpmM1" aria-label="慢 1">−1</button>
+        <label class="bpmbox"><input type="number" id="bpmIn" inputmode="numeric" min="30" max="260" step="1" aria-label="速度 BPM"><span>BPM</span></label>
+        <button id="bpmP1" aria-label="快 1">+1</button><button id="bpmP10" aria-label="快 10">+10</button>
+      </div>
+      <div class="mnote" id="bpmNote"></div>
+      <div class="mtoggles">
+        <button class="tg" id="tgClick" aria-pressed="false">節拍器</button>
+        <button class="tg" id="tgOne" aria-pressed="false">只響第 1 拍</button>
+        <button class="tg" id="tgMute" aria-pressed="false">歌曲靜音</button>
+        <label class="mvol">音量 <input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"></label>
+      </div>
+      <p class="mnote">歌曲靜音＋節拍器＝只聽節拍器，鼓譜和計數器照樣跟著走，可以用任何速度練。</p>
+    </div>
+    <div class="mixer" id="mixer" hidden>
+      <div class="mxhead"><b>分軌混音</b>
+        <span class="presets">
+          <button data-preset="all">全部</button>
+          <button data-preset="nodrums">鼓靜音（跟著打）</button>
+          <button data-preset="drums">只聽鼓</button>
+          <button data-preset="novocals">人聲靜音</button>
+        </span>
+      </div>
+      <div id="mxRows"></div>
+      <p class="mxnote">M＝靜音，S＝獨奏（只聽這幾軌）。設定會跟著這首歌記住。</p>
+    </div>
     <div class="seekrow">
       <input type="range" id="seek" min="0" max="300" step="0.01" value="0" aria-label="播放位置" disabled>
       <span class="time mono" id="time">0:00 / 0:00</span>
@@ -473,6 +537,7 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
       <button class="play" id="play" aria-label="播放" disabled><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4l13 8-13 8z"/></svg></button>
       <button class="dbtn" id="nextBar" aria-label="後一小節"><svg viewBox="0 0 24 24"><path d="M3 6v12l8-6zM13 6v12l8-6z"/></svg><span>後一小節</span></button>
       <button class="dbtn" id="clickBtn" aria-pressed="false" aria-label="節拍器"><svg viewBox="0 0 24 24"><path d="M9 3h6l4 18H5zM11.2 5 8 19h8l-1.1-5H12l-.8-3.4L15 6.4 14.6 5z"/></svg><span>節拍器</span></button>
+      <button class="dbtn" id="mixBtn" aria-pressed="false" aria-label="分軌混音" hidden><svg viewBox="0 0 24 24"><path d="M5 3h2v6h2v2H7v10H5V11H3V9h2zm6 0h2v12h2v2h-2v4h-2v-4H9v-2h2zm6 0h2v4h2v2h-2v12h-2V9h-2V7h2z"/></svg><span>混音</span></button>
     </div>
   </div>
 </div>
@@ -563,7 +628,7 @@ function setSong(s, orig){
   offset = Number.isFinite(SONG.offsetMs) ? SONG.offsetMs/1000 : 0; $('offset').value = Math.round(offset*1000);
   B = SONG.beats; BPB = SONG.beatsPerBar || 4; BAR1 = SONG.bar1Beat; LAST = SONG.lastBar; SECS = SONG.sections = normalizeSections(SONG.sections); FILLS = new Set(SONG.fills || []);
   score.firstBar = (SONG.score && Number.isInteger(SONG.score.firstBar)) ? SONG.score.firstBar : 0; $('firstBar').value = score.firstBar;
-  buildLights(); renderHeader(); buildMap(); buildStartSel();
+  buildLights(); renderHeader(); buildMap(); buildStartSel(); updateTempoUI();
   if (score.osmd){ numberMeasures(); if (!$('scoreWrap').hidden) renderScore(); else score.needsRender = true; }
   if (loop) loop = null;
   lastBeatKey = null; tick(true);
@@ -818,10 +883,10 @@ const libDel = id => libTx('readwrite', st => st.delete(id));
 const songId = s => (s.title || '未命名') + '|' + Math.round(s.duration || 0);
 const MIME = {m4a: 'audio/mp4', aac: 'audio/aac', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', opus: 'audio/ogg', flac: 'audio/flac'};
 function setLibMsg(t, cls){ $('libMsg').innerHTML = t ? `<span class="${cls || ''}">${esc(t)}</span>` : ''; }
-function makeRec(s, audio, score){
+function makeRec(s, audio, score, stems){
   return {id: songId(s), title: s.title || '未命名', artist: s.artist || '', bpm: s.bpm, lastBar: s.lastBar, sections: (s.sections || []).length,
           json: JSON.stringify(s), audio: audio ? audio.buf : null, audioType: audio ? audio.type : null, audioName: audio ? audio.name : null,
-          scoreText: score ? score.text : null, scoreName: score ? score.name : null, added: Date.now(), last: 0};
+          scoreText: score ? score.text : null, scoreName: score ? score.name : null, stems: stems && stems.length > 1 ? stems : null, added: Date.now(), last: 0};
 }
 // 打包好的歌曲 .html（make_bundle.py 產生）
 async function recFromBundle(f){
@@ -833,8 +898,10 @@ async function recFromBundle(f){
   const ms = txt.match(/<script type="text\/plain" id="cb-score" data-name="([^"]*)">([\s\S]*?)<\/script>/);
   const unesc = x => { const d = document.createElement('textarea'); d.innerHTML = x; return d.value; };
   const ab = ma && ma[3].replace(/\s+/g, ''), sb = ms && ms[2].replace(/\s+/g, '');
+  const stems = [...txt.matchAll(/<script type="text\/plain" class="cb-stem" data-key="([^"]*)" data-mime="([^"]*)" data-name="([^"]*)">([\s\S]*?)<\/script>/g)]
+    .map(m => ({key: m[1], type: m[2] || 'audio/mp4', name: unesc(m[3]), buf: b64Bytes(m[4].replace(/\s+/g, '')).buffer}));
   return makeRec(s, ab && ab.length > 100 ? {buf: b64Bytes(ab).buffer, type: ma[1] || 'audio/mp4', name: unesc(ma[2])} : null,
-                    sb && sb.length > 100 ? {text: new TextDecoder().decode(b64Bytes(sb)), name: unesc(ms[1])} : null);
+                    sb && sb.length > 100 ? {text: new TextDecoder().decode(b64Bytes(sb)), name: unesc(ms[1])} : null, stems);
 }
 // song.json＋音檔＋鼓譜（散檔或 zip 解開後）
 async function recFromFiles(files){
@@ -843,11 +910,15 @@ async function recFromFiles(files){
   if (!validSong(s)) throw new Error(`${jf.name} 讀不懂，請確認是分析腳本產生的 song.json`);
   const auds = files.filter(f => AUDIO_RE.test(f.name)), pref = (s.audioFiles || []).map(x => x.toLowerCase());
   auds.sort((a, b) => { const ia = pref.indexOf(a.name.toLowerCase()), ib = pref.indexOf(b.name.toLowerCase()); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
-  const af = auds[0], sf = pickScore(files);
+  // 檔名是 drums / bass / vocals / other… 的音檔，兩軌以上就當分軌
+  const byKey = {}; auds.forEach(f => { const k = stemKeyOf(f.name); if (k && !byKey[k]) byKey[k] = f; });
+  const stemFiles = Object.entries(byKey);
+  const stems = stemFiles.length > 1 ? await Promise.all(stemFiles.map(async ([k, f]) => ({key: k, name: f.name, type: f.type || MIME[(f.name.split('.').pop() || '').toLowerCase()] || 'audio/mpeg', buf: await f.arrayBuffer()}))) : null;
+  const af = stems ? null : auds[0], sf = pickScore(files);
   let scoreText = null;
   if (sf){ scoreText = /\.mxl$/i.test(sf.name) ? await mxlText(sf) : await sf.text(); }
   return makeRec(s, af ? {buf: await af.arrayBuffer(), type: af.type || MIME[(af.name.split('.').pop() || '').toLowerCase()] || 'audio/mpeg', name: af.name} : null,
-                 scoreText ? {text: scoreText, name: sf.name} : null);
+                 scoreText ? {text: scoreText, name: sf.name} : null, stems);
 }
 async function openFiles(list){
   let files = [...list].filter(f => !f.name.startsWith('.'));
@@ -881,7 +952,7 @@ async function renderLibrary(){
   all.forEach(r => {
     const el = document.createElement('div'); el.className = 'song' + (r.id === lastId ? ' last' : '');
     const meta = [r.bpm ? `♩=${Math.round(r.bpm)}` : '', r.lastBar ? `${r.lastBar} 小節` : '', r.sections ? `${r.sections} 段` : '',
-                  r.audio ? '' : '沒有音檔', r.scoreText ? '' : '沒有鼓譜', r.last ? '上次 ' + new Date(r.last).toLocaleDateString('zh-TW') : ''].filter(Boolean).join(' · ');
+                  r.stems ? `${r.stems.length} 軌` : (r.audio ? '' : '沒有音檔'), r.scoreText ? '' : '沒有鼓譜', r.last ? '上次 ' + new Date(r.last).toLocaleDateString('zh-TW') : ''].filter(Boolean).join(' · ');
     el.innerHTML = `<span class="t">${esc(r.title)}${r.artist ? ` <span style="font-weight:400;color:var(--muted);font-size:14px">${esc(r.artist)}</span>` : ''}</span>
       <span class="m">${esc(meta)}</span>
       <span class="go"><button data-open="${esc(r.id)}">練習</button><button class="del" data-del="${esc(r.id)}">${delArm === r.id ? '確定刪除' : '刪除'}</button></span>`;
@@ -913,7 +984,8 @@ async function openSong(id){
   r.last = Date.now(); libPut(r).catch(() => {}); try { localStorage.setItem('cb-last', id); } catch(e){}
   $('library').hidden = true; $('practice').hidden = false; $('loader').hidden = false; document.body.classList.remove('inlib');
   applySongWithEdits(JSON.parse(r.json)); applyView();
-  if (r.audio){ const f = new File([r.audio], r.audioName || 'audio', {type: r.audioType || 'audio/mp4'}); folderAudio = [f]; useAudio(f); $('fileHint').textContent = ''; }
+  if (r.stems && r.stems.length > 1){ setupStems(r.stems.map(st => ({key: st.key, file: new File([st.buf], st.name || st.key, {type: st.type || 'audio/mp4'})}))); $('fileHint').textContent = `${r.stems.length} 軌分軌，按下方「混音」調整`; }
+  else if (r.audio){ const f = new File([r.audio], r.audioName || 'audio', {type: r.audioType || 'audio/mp4'}); folderAudio = [f]; useAudio(f); $('fileHint').textContent = ''; }
   else { loaded = false; $('play').disabled = true; $('fileHint').textContent = '這首沒有音檔，請重新匯入含音檔的版本。'; }
   if (r.scoreText){ const txt = r.scoreText; initScore(async () => txt); }
   else { score.osmd = null; score.ready = false; scoreMsg('這首沒有鼓譜。'); }
@@ -922,6 +994,7 @@ async function openSong(id){
 $('toLib').onclick = showLibrary;
 $('audioSel').onchange = e => { const f = folderAudio[+e.target.value]; if (f){ useAudio(f); cacheGet().then(v => { if (v){ v.audio = f; v.audioName = f.name; cachePut(v); } }); } };
 function useAudio(blob){
+  if (!MIX.loading) teardownStems();
   const wasT = curTime();
   if (audio.src) try { URL.revokeObjectURL(audio.src); } catch(e){}
   audio.src = URL.createObjectURL(blob);
@@ -973,7 +1046,7 @@ function togglePlay(){ if (!loaded) return; ensureCtx(); if (audio.paused){ cons
 function seekTo(t, play){
   if (!loaded) return; t = Math.max(0, t);
   if (audio.readyState < 1){ pendingSeek = t; } else { try { audio.currentTime = t; } catch(e){ pendingSeek = t; } }
-  lastBeatKey = null;
+  lastBeatKey = null; metroNext = null;
   if (play){ ensureCtx(); const pr = audio.play(); if (pr && pr.catch) pr.catch(err => showErr('播放失敗：' + err.message)); }
   tick(true);
 }
@@ -983,8 +1056,169 @@ const nowBarNo = () => { const p = pos(curTime()); return Math.max(0, Math.min(L
 $('prevBar').onclick = () => { if (!loaded) return; const p = pos(curTime()); const target = p.frac > 0.12 || !audio.paused && p.frac > 0.25 ? p.bar : p.bar - 1; seekTo(barStart(Math.max(0, target)) + 0.01, !audio.paused); };
 $('nextBar').onclick = () => { if (!loaded) return; seekTo(barStart(Math.min(LAST, nowBarNo() + 1)) + 0.01, !audio.paused); };
 $('secStart').onclick = () => { if (!loaded) return; const s = secOf(nowBarNo()); seekTo(barStart(s ? s.from : nowBarNo()) + 0.01, !audio.paused); };
-$('clickBtn').onclick = () => { const c = $('click'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); };
+$('clickBtn').onclick = () => { const open = $('metroSheet').hidden; $('metroSheet').hidden = !open; if (open){ const mx = document.getElementById('mixer'); if (mx) mx.hidden = true; updateTempoUI(); } };
+/* ---------- 節拍器與速度 ---------- */
+const songBpm = () => (SONG && SONG.bpm) || 100;
+function curBpm(){ return Math.round(songBpm() * (audio.playbackRate || 1)); }
+function setTempo(bpm){
+  bpm = Math.max(30, Math.min(260, Math.round(+bpm || songBpm())));
+  setRate(Math.max(0.25, Math.min(2, bpm / songBpm()))); updateTempoUI();
+}
+function updateTempoUI(){
+  if (document.activeElement !== $('bpmIn')) $('bpmIn').value = curBpm();
+  const pct = Math.round((audio.playbackRate || 1) * 100);
+  $('bpmNote').textContent = `原曲 ${Math.round(songBpm())} BPM · 目前 ${pct}%` + (!audio.muted && (pct < 50 || pct > 150) ? ' · 速度差很多時歌曲音質會變差，可以開「歌曲靜音」' : '');
+  $('tgClick').setAttribute('aria-pressed', $('click').checked); $('tgOne').setAttribute('aria-pressed', $('clickOne').checked);
+  $('tgMute').setAttribute('aria-pressed', !!audio.muted); $('clickBtn').setAttribute('aria-pressed', $('click').checked);
+  document.querySelectorAll('#tempoPresets [data-pct]').forEach(b => b.setAttribute('aria-pressed', Math.abs(+b.dataset.pct - (audio.playbackRate || 1)) < 0.005));
+}
+$('bpmIn').addEventListener('change', e => setTempo(e.target.value));
+[['bpmM10', -10], ['bpmM1', -1], ['bpmP1', 1], ['bpmP10', 10]].forEach(([id, d]) => { $(id).onclick = () => setTempo(curBpm() + d); });
+$('tempoPresets').addEventListener('click', e => { const b = e.target.closest('[data-pct]'); if (b){ setRate(+b.dataset.pct); updateTempoUI(); } });
+$('tgClick').onclick = () => { const c = $('click'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); updateTempoUI(); };
+$('tgOne').onclick = () => { $('clickOne').checked = !$('clickOne').checked; updateTempoUI(); };
+function setSongMuted(on){
+  audio.muted = on;
+  if (typeof MIX !== 'undefined') MIX.stems.forEach(st => { if (st.el !== audio) st.el.muted = on; });
+  if (on && !$('click').checked){ $('click').checked = true; $('click').dispatchEvent(new Event('change')); }
+  updateTempoUI();
+}
+$('tgMute').onclick = () => setSongMuted(!audio.muted);
+const metroVol = () => +$('metroVol').value;
+try { const v = localStorage.getItem('cb-metro-vol'); if (v !== null) $('metroVol').value = v; } catch(e){}
+$('metroVol').addEventListener('input', () => { try { localStorage.setItem('cb-metro-vol', $('metroVol').value); } catch(e){} });
+// 節拍器：用 Web Audio 的時間表提前排好每一拍，比跟著畫面更新觸發準
+let metroNext = null;
+function clickAt(when, accent){
+  const o = actx.createOscillator(), g = actx.createGain(), v = metroVol();
+  o.frequency.value = accent ? 1600 : 1000;
+  g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(Math.max(0.0002, (accent ? .7 : .4) * v), when + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
+  o.connect(g).connect(actx.destination); o.start(when); o.stop(when + 0.07);
+}
+function metroSchedule(t){
+  if (!$('click').checked || audio.paused || mode !== 'follow' || !actx || B.length < 2){ metroNext = null; return; }
+  const rate = audio.playbackRate || 1, cur = beatIdx(t - offset), first = Math.ceil(cur - 1e-6);
+  if (metroNext === null || metroNext < first || metroNext > first + 2) metroNext = first;
+  for (let g = 0; g < 8; g++){
+    const dt = (beatTime(metroNext) + offset - t) / rate;
+    if (dt > 0.15) break;
+    if (dt >= -0.02){
+      const k = metroNext - BAR1, bar = Math.floor(k / BPB) + 1, inBar = ((k % BPB) + BPB) % BPB;
+      if (bar >= 0 && bar <= LAST && (inBar === 0 || !$('clickOne').checked)) clickAt(actx.currentTime + Math.max(0, dt), inBar === 0);
+    }
+    metroNext++;
+  }
+}
+audio.addEventListener('ratechange', updateTempoUI);
+audio.addEventListener('volumechange', updateTempoUI);
 $('click').addEventListener('change', () => { $('clickBtn').setAttribute('aria-pressed', $('click').checked); if ($('click').checked) ensureCtx(); });
+/* ---------- 分軌混音器 ---------- */
+const STEM_LABEL = {drums:'鼓', bass:'貝斯', vocals:'人聲', other:'其他樂器', guitar:'吉他', piano:'鋼琴', original:'原曲'};
+const STEM_ORDER = ['drums', 'bass', 'vocals', 'guitar', 'piano', 'other', 'original'];
+const MIX = {stems: [], loading: false, timer: null};
+window.__cbMix = MIX;  // 方便除錯：在主控台看各軌狀態
+// 從檔名判斷是哪一軌（Demucs 的 drums / bass / vocals / other / guitar / piano）
+function stemKeyOf(name){
+  const b = (name || '').toLowerCase().replace(/\.[a-z0-9]+$/, '');
+  const m = b.match(/(^|[^a-z])(drums?|bass|vocals?|other|guitar|piano)([^a-z]|$)/);
+  if (m) return m[2].replace(/s$/, '') === 'drum' ? 'drums' : (m[2] === 'vocal' ? 'vocals' : m[2]);
+  if (/鼓/.test(b)) return 'drums'; if (/貝斯/.test(b)) return 'bass'; if (/人聲/.test(b)) return 'vocals';
+  return null;
+}
+function mixKey(){ return 'cb-mix:' + (SONG ? (SONG.title || '未命名') + '|' + Math.round(SONG.duration || 0) : ''); }
+function teardownStems(){
+  clearInterval(MIX.timer); MIX.timer = null;
+  MIX.stems.forEach(st => { if (st.el !== audio){ try { st.el.pause(); } catch(e){} try { URL.revokeObjectURL(st.el.src); } catch(e){} try { st.src && st.src.disconnect(); } catch(e){} } });
+  MIX.stems = []; if (audio._gain) audio._gain.gain.value = 1;
+  $('mixBtn').hidden = true; $('mixer').hidden = true; $('mixBtn').setAttribute('aria-pressed', 'false');
+}
+// list: [{key, file}]；主分軌用鼓
+function setupStems(list){
+  teardownStems();
+  list = list.slice().sort((a, b) => STEM_ORDER.indexOf(a.key) - STEM_ORDER.indexOf(b.key));
+  MIX.loading = true; useAudio(list[0].file); MIX.loading = false;
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem(mixKey()) || '{}'); } catch(e){}
+  MIX.stems = list.map((st, i) => {
+    let el = audio;
+    if (i > 0){
+      el = new Audio(); el.preload = 'auto'; el.setAttribute('playsinline', ''); el.preservesPitch = true;
+      el.src = URL.createObjectURL(st.file); try { el.load(); } catch(e){}
+    }
+    const sv = saved[st.key] || {};
+    return {key: st.key, label: STEM_LABEL[st.key] || st.key, el, vol: sv.vol ?? 1, mute: !!sv.mute, solo: !!sv.solo, src: null, gain: null};
+  });
+  $('mixBtn').hidden = MIX.stems.length < 2;
+  renderMixer();
+}
+// 第一次播放（使用者點擊時）才接上 Web Audio，iOS 規定要在點擊當下建立
+function wireMix(){
+  if (MIX.stems.length < 2) return;
+  ensureCtx(); if (!actx) return;
+  MIX.stems.forEach(st => {
+    if (st.el === audio){
+      if (!audio._src){ audio._src = actx.createMediaElementSource(audio); audio._gain = actx.createGain(); audio._src.connect(audio._gain).connect(actx.destination); }
+      st.gain = audio._gain;
+    } else if (!st.src){
+      st.src = actx.createMediaElementSource(st.el); st.gain = actx.createGain(); st.src.connect(st.gain).connect(actx.destination);
+    }
+  });
+  applyGains();
+}
+function applyGains(){
+  const anySolo = MIX.stems.some(s => s.solo);
+  MIX.stems.forEach(st => {
+    const on = anySolo ? st.solo : !st.mute, g = on ? st.vol * st.vol : 0;  // 平方：滑桿比較符合耳朵的感覺
+    if (st.gain && actx) st.gain.gain.setTargetAtTime(g, actx.currentTime, 0.02);
+    st.on = on;
+  });
+  document.querySelectorAll('.mxrow').forEach((r, i) => r.classList.toggle('off', !MIX.stems[i].on));
+  try { const o = {}; MIX.stems.forEach(s => { o[s.key] = {vol: s.vol, mute: s.mute, solo: s.solo}; }); localStorage.setItem(mixKey(), JSON.stringify(o)); } catch(e){}
+}
+function renderMixer(){
+  $('mxRows').innerHTML = MIX.stems.map((st, i) => `<div class="mxrow" data-i="${i}">
+    <span class="nm">${esc(st.label)}</span>
+    <button class="m" data-m="${i}" aria-pressed="${st.mute}" aria-label="${esc(st.label)}靜音">M</button>
+    <button class="s" data-s="${i}" aria-pressed="${st.solo}" aria-label="${esc(st.label)}獨奏">S</button>
+    <input type="range" min="0" max="1" step="0.01" value="${st.vol}" data-v="${i}" aria-label="${esc(st.label)}音量">
+    <span class="pc">${Math.round(st.vol * 100)}%</span></div>`).join('');
+  applyGains();
+}
+$('mxRows').addEventListener('click', e => {
+  const m = e.target.closest('[data-m]'), s = e.target.closest('[data-s]');
+  if (m){ const st = MIX.stems[+m.dataset.m]; st.mute = !st.mute; m.setAttribute('aria-pressed', st.mute); }
+  if (s){ const st = MIX.stems[+s.dataset.s]; st.solo = !st.solo; s.setAttribute('aria-pressed', st.solo); }
+  if (m || s){ wireMix(); applyGains(); }
+});
+$('mxRows').addEventListener('input', e => {
+  const v = e.target.closest('[data-v]'); if (!v) return;
+  const st = MIX.stems[+v.dataset.v]; st.vol = +v.value; v.parentElement.querySelector('.pc').textContent = Math.round(st.vol * 100) + '%';
+  wireMix(); applyGains();
+});
+document.querySelector('#mixer .presets').addEventListener('click', e => {
+  const b = e.target.closest('[data-preset]'); if (!b) return;
+  const p = b.dataset.preset;
+  MIX.stems.forEach(st => {
+    st.solo = p === 'drums' && st.key === 'drums';
+    st.mute = (p === 'nodrums' && st.key === 'drums') || (p === 'novocals' && st.key === 'vocals');
+    if (p === 'all') st.vol = 1;
+  });
+  wireMix(); renderMixer();
+});
+$('mixBtn').onclick = () => { const h = !$('mixer').hidden; $('mixer').hidden = h; $('mixBtn').setAttribute('aria-pressed', !h); if (!h){ const ms = document.getElementById('metroSheet'); if (ms) ms.hidden = true; } };
+// 跟隨主分軌
+const followers = () => MIX.stems.filter(st => st.el !== audio);
+function syncFollower(st, lead){ try { if (Math.abs(st.el.currentTime - audio.currentTime) > 0.025) st.el.currentTime = audio.currentTime + (lead || 0); } catch(e){} }
+audio.addEventListener('play', () => {
+  wireMix();
+  followers().forEach(st => { st.el.playbackRate = audio.playbackRate; syncFollower(st); const pr = st.el.play(); if (pr && pr.catch) pr.catch(() => {}); });
+  clearInterval(MIX.timer);
+  if (MIX.stems.length > 1) MIX.timer = setInterval(() => { if (!audio.paused) followers().forEach(st => { if (st.el.paused){ const pr = st.el.play(); if (pr && pr.catch) pr.catch(() => {}); } syncFollower(st, 0.01); }); }, 300);
+});
+audio.addEventListener('pause', () => { clearInterval(MIX.timer); followers().forEach(st => st.el.pause()); });
+audio.addEventListener('seeked', () => followers().forEach(st => syncFollower(st)));
+audio.addEventListener('ratechange', () => followers().forEach(st => { st.el.playbackRate = audio.playbackRate; }));
+audio.addEventListener('ended', () => followers().forEach(st => st.el.pause()));
+
 let wake = null;
 async function holdScreen(on){
   try {
@@ -1012,7 +1246,6 @@ function tick(force){
   const {bar, beat} = pos(t);
   const key = bar + ':' + beat;
   if (key !== lastBeatKey || force){
-    if (!force && !audio.paused && lastBeatKey !== null && $('click').checked && mode === 'follow' && bar >= 0 && bar <= LAST && (beat === 1 || !$('clickOne').checked)) click(beat === 1);
     lastBeatKey = key;
     const hide = mode !== 'follow' && quiz && quiz.running;
     const showL = !hide || $('showLights').checked;
@@ -1028,6 +1261,7 @@ function tick(force){
     else { const s = secOf(bar); $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = s ? `段落：<b>${esc(secLabel(s))}</b> · 這段第 ${bar - s.from + 1}/${s.to - s.from + 1} 小節` : '段落：<b>—</b>'; }
     if (nowBar !== bar){ if (barEls[nowBar]) barEls[nowBar].classList.remove('now'); if (!hide && barEls[bar]) barEls[bar].classList.add('now'); nowBar = bar; }
   }
+  metroSchedule(t);
   if (quiz && quiz.running) quizTick(t);
   if (score.ready && !$('scoreWrap').hidden) syncScore(t);
 }
@@ -1277,17 +1511,44 @@ function syncScore(t, force){
   score.step = k;
   followScroll();
 }
-function followScroll(){
-  if (!$('follow').checked || audio.paused) return;
-  const el = score.osmd.cursors[0].cursorElement; if (!el) return;
-  if (el.style.top === score.lastTop) return;
-  score.lastTop = el.style.top;
-  const r = el.getBoundingClientRect(); if (!r.height) return;
-  const top = document.querySelector('.transport').getBoundingClientRect().bottom + 12;
-  const bottom = $('dock').getBoundingClientRect().top - 12;
-  if (r.top < top || r.bottom > bottom)
-    window.scrollBy({top: r.top - top - 8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+function scoreViewBand(){
+  const top = document.querySelector('.transport').getBoundingClientRect().bottom + 8;
+  const dock = $('dock'), bottom = (dock && getComputedStyle(dock).display !== 'none' ? dock.getBoundingClientRect().top : window.innerHeight) - 8;
+  return {top, bottom};
 }
+// 游標所在那一行：用游標圖片的上緣，高度固定取五線譜高（圖片高度在更新瞬間會變）
+function cursorRect(){
+  const el = score.osmd && score.osmd.cursors[0] && score.osmd.cursors[0].cursorElement; if (!el || el.style.display === 'none') return null;
+  const r = el.getBoundingClientRect(), h = 4 * score.osmd.zoom * 10;
+  return {top: r.top, bottom: r.top + h, height: h};
+}
+function scrollCursorTo(where, smooth){
+  const r = cursorRect(); if (!r) return;
+  const {top, bottom} = scoreViewBand(); let dy = 0;
+  if (where === 'center') dy = (r.top + r.height/2) - (top + (bottom - top) * 0.42);   // 稍微偏上，下面多留幾行可以往前看
+  else if (where === 'top') dy = r.top - top - 8;
+  else if (r.top < top) dy = r.top - top - 8;
+  else if (r.bottom > bottom) dy = r.bottom - bottom + 8;
+  if (Math.abs(dy) > 2) window.scrollBy({top: dy, behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto'});
+}
+const followMode = () => $('followMode').value;
+const afterLayout = fn => requestAnimationFrame(() => requestAnimationFrame(fn));
+function followScroll(){
+  const fm = followMode(); if (fm === 'off' || audio.paused) return;
+  const el = score.osmd.cursors[0].cursorElement; if (!el) return;
+  if (el.style.top === score.lastTop) return;   // 只在換行時捲動
+  score.lastTop = el.style.top;
+  if (fm === 'center') afterLayout(() => scrollCursorTo('center', true));
+  else { const r = cursorRect(); if (!r) return; const {top, bottom} = scoreViewBand(); if (r.top < top || r.bottom > bottom) scrollCursorTo('top', true); }
+}
+// 點了某一小節之後：「保持在中間」就把它移到中間，其他方式只確保看得到
+function keepScoreInView(){
+  score.lastTop = null;
+  afterLayout(() => { if (followMode() === 'center') scrollCursorTo('center', true); else scrollCursorTo('visible', true); });
+  if (score.osmd) score.lastTop = score.osmd.cursors[0].cursorElement.style.top;
+}
+try { const v = localStorage.getItem('cb-follow'); if (v) $('followMode').value = v; } catch(e){}
+$('followMode').onchange = () => { try { localStorage.setItem('cb-follow', followMode()); } catch(e){} score.lastTop = null; if (!audio.paused) followScroll(); };
 $('score').addEventListener('click', e => {
   if (!score.ready) return; const layer = cursorLayer(); if (!layer) return;
   const rc = layer.getBoundingClientRect(), z = score.osmd.zoom * 10;
@@ -1296,7 +1557,8 @@ $('score').addEventListener('click', e => {
     const m = gm(i); if (!m) continue; const p = m.PositionAndShape;
     if (ux >= p.AbsolutePosition.x && ux <= p.AbsolutePosition.x + p.Size.width && uy >= p.AbsolutePosition.y - 5 && uy <= p.AbsolutePosition.y + 10){
       const bar = i + score.firstBar;
-      if (loaded) seekTo(barStart(bar) + 0.01); else $('fileHint').textContent = `先開啟音檔，才能跳到第 ${bar} 小節。`; $('loader').scrollIntoView({behavior: 'smooth', block: 'center'});
+      if (loaded){ seekTo(barStart(bar) + 0.01); keepScoreInView(); }
+      else { $('fileHint').textContent = `先開啟音檔，才能跳到第 ${bar} 小節。`; $('loader').scrollIntoView({behavior: 'smooth', block: 'center'}); }
       return;
     }
   }
