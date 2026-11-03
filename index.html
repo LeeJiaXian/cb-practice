@@ -228,7 +228,7 @@ details.adv input{width:90px;padding:3px 6px;border:1px solid var(--rule);border
 /* ===== phone layout: compact sticky counter on top, thumb-reach dock at the bottom ===== */
 html{-webkit-text-size-adjust:100%}
 body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-highlight-color:transparent}
-.wrap{max-width:680px}
+.wrap{max-width:var(--wrap-max,680px)}
 .top{padding-block:16px 6px}
 .top h1{font-size:clamp(30px,8vw,40px)}
 .facts .fact{font-size:11.5px;padding:2px 7px}
@@ -265,6 +265,11 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .qhint{color:var(--muted);font-size:13px!important}
 .scorehead{margin-top:18px;align-items:center}
 .scorehead h2,.maphead h2{font-size:26px}
+.scoretools{display:inline-flex;align-items:center;gap:8px 14px;flex-wrap:wrap;justify-content:flex-end}
+.widthctl{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);min-height:36px}
+.widthctl input{width:140px;accent-color:var(--brass)}
+.widthctl span{min-width:4.2em;font-size:12px;color:var(--ink)}
+@media (max-width:719px){.widthctl{display:none}}  /* 手機螢幕本來就比 680 窄，調了也沒差 */
 .zoombtns{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
 .zoombtns button{border:0;background:var(--card);min-width:44px;min-height:36px;font-weight:700}
 .zoombtns button+button{border-left:1px solid var(--rule)}
@@ -312,8 +317,16 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .metro .tg{min-height:38px;border-radius:8px;border:1.5px solid var(--rule);background:var(--card);padding:0 12px;font-weight:500}
 .metro .tg[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--card)}
 .metro #tgMute[aria-pressed=true]{background:var(--bad);border-color:var(--bad);color:#fff}
-.metro .mvol{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);flex:1 1 140px}
-.metro .mvol input{flex:1;accent-color:var(--brass)}
+/* 節拍器、歌曲各一列：左邊色條＋圖示＋名稱，音量滑桿顏色也分開（節拍器＝銅色、歌曲＝青色） */
+.metro .mgroup{--mc:var(--brass);display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:6px 10px;padding:6px 0 6px 10px;border-left:4px solid var(--mc)}
+.metro .mg-song{--mc:var(--sV)}
+.metro .mglab{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:14px;color:var(--mc);min-width:4.6em}
+.metro .mglab svg{width:18px;height:18px;fill:currentColor}
+.metro .mvol{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);min-width:0}
+.metro .mvol span{white-space:nowrap}
+.metro .mvol input{flex:1;min-width:60px;accent-color:var(--mc)}
+.metro .mvol output{min-width:3.2em;text-align:right;font-size:12px;color:var(--ink)}
+@media (max-width:520px){.metro .mgroup{grid-template-columns:auto 1fr}.metro .mvol{grid-column:1/-1}}
 .metro .mnote{font-size:12px;color:var(--muted);margin:0}
 
 /* ===== mixer sheet ===== */
@@ -362,6 +375,7 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
     <span class="hint" id="fileHint"></span>
   </div>
   <div class="notice" id="notice" hidden></div>
+  <div class="notice" id="mp3Warn" hidden></div>
 </div>
 
 <section class="wrap library" id="library">
@@ -435,7 +449,10 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
   <section id="scoreWrap">
     <div class="scorehead">
       <h2>鼓譜</h2>
-      <span class="zoombtns" role="group" aria-label="譜的大小"><button id="zoomOut" aria-label="譜縮小">A−</button><button id="zoomIn" aria-label="譜放大">A＋</button></span>
+      <span class="scoretools">
+        <label class="widthctl">版面寬度 <input type="range" id="pageWidth" min="680" max="1400" step="20" value="680" aria-label="版面寬度"><span class="mono" id="pageWidthLab">標準</span></label>
+        <span class="zoombtns" role="group" aria-label="譜的大小"><button id="zoomOut" aria-label="譜縮小">A−</button><button id="zoomIn" aria-label="譜放大">A＋</button></span>
+      </span>
     </div>
     <div class="scorecard"><div id="score"><div class="msg">鼓譜載入中…</div></div></div>
     <div class="scoreopts">
@@ -507,11 +524,20 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
         <button id="bpmP1" aria-label="快 1">+1</button><button id="bpmP10" aria-label="快 10">+10</button>
       </div>
       <div class="mnote" id="bpmNote"></div>
-      <div class="mtoggles">
-        <button class="tg" id="tgClick" aria-pressed="false">節拍器</button>
-        <button class="tg" id="tgOne" aria-pressed="false">只響第 1 拍</button>
-        <button class="tg" id="tgMute" aria-pressed="false">歌曲靜音</button>
-        <label class="mvol">音量 <input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"></label>
+      <div class="mgroup mg-click">
+        <div class="mglab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5zM11.2 5 8 19h8l-1.1-5H12l-.8-3.4L15 6.4 14.6 5z"/></svg>節拍器</div>
+        <div class="mtoggles">
+          <button class="tg" id="tgClick" aria-pressed="false" aria-label="節拍器開關">開啟</button>
+          <button class="tg" id="tgOne" aria-pressed="false">只響第 1 拍</button>
+        </div>
+        <label class="mvol"><span>節拍器音量</span><input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"><output class="mono" id="metroVolPc">80%</output></label>
+      </div>
+      <div class="mgroup mg-song">
+        <div class="mglab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v11.3A3.5 3.5 0 1 0 11 17V8h7V3z"/></svg>歌曲</div>
+        <div class="mtoggles">
+          <button class="tg" id="tgMute" aria-pressed="false" aria-label="歌曲靜音">靜音</button>
+        </div>
+        <label class="mvol"><span>歌曲音量</span><input type="range" id="songVol" min="0" max="1" step="0.05" value="1" aria-label="歌曲音量"><output class="mono" id="songVolPc">100%</output></label>
       </div>
       <p class="mnote">歌曲靜音＋節拍器＝只聽節拍器，鼓譜和計數器照樣跟著走，可以用任何速度練。</p>
     </div>
@@ -546,6 +572,8 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
 <script>
 (() => {
+// 這份頁面是哪個版本。PHONE：手機系介面（底部操作列、節拍器面板、置中跟隨），手機版、PWA、打包檔都是
+const VARIANT = 'pwa', PHONE = true;
 // 段落類型：key 存進 song.json，name 是預設顯示名稱
 const TYPES = [
   {key:'intro', name:'前奏', label:'前奏 Intro', color:'--sIn', paper:'--pIn', count:false},
@@ -577,16 +605,21 @@ function normalizeSections(list){
 }
 const AUDIO_RE = /\.(wav|mp3|m4a|flac|ogg|aac|opus)$/i;
 const $ = id => document.getElementById(id);
+// 錯誤直接顯示在頁面上（iPad 上看不到主控台）；只有手機系會自動接上
 function showErr(msg){ const nt = $('notice'); nt.hidden = false; nt.innerHTML = ''; const sp = document.createElement('span'); sp.textContent = '⚠ ' + msg; nt.appendChild(sp); }
-window.addEventListener('error', e => showErr('程式錯誤：' + (e.message || e.error)));
-window.addEventListener('unhandledrejection', e => showErr('程式錯誤：' + ((e.reason && e.reason.message) || e.reason)));
-const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if (PHONE){
+  window.addEventListener('error', e => showErr('程式錯誤：' + (e.message || e.error)));
+  window.addEventListener('unhandledrejection', e => showErr('程式錯誤：' + ((e.reason && e.reason.message) || e.reason)));
+}
+const IOS = PHONE && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 if (IOS) $('folderBtn').hidden = true;  // iOS 不能選資料夾，改用多選檔案或 .zip
 let zoomF = 1; try { zoomF = +localStorage.getItem('cb-zoom') || 1; } catch(e){}
+let pageWidth = 680; try { const v = localStorage.getItem('cb-width'); if (v) pageWidth = v === 'full' ? 'full' : +v || 680; } catch(e){}  // 手機系的版面寬度（px 或 'full'）
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-const audio = new Audio(); audio.preload = 'auto'; audio.setAttribute('playsinline', ''); audio.setAttribute('webkit-playsinline', '');
-let pendingSeek = null;
+const audio = new Audio(); audio.preload = 'auto';
+if (PHONE){ audio.setAttribute('playsinline', ''); audio.setAttribute('webkit-playsinline', ''); }
+let pendingSeek = null;  // 還沒讀到 metadata 時的跳轉目標（iOS 不預載音檔）；桌機版永遠是 null
 let SONG = null, ORIG = null, B = [], BPB = 4, BAR1 = 0, LAST = 1, SECS = [], FILLS = new Set();
 let loaded = false, mode = 'follow', offset = 0, loop = null, actx = null, quiz = null, folderAudio = [];
 let editing = false;
@@ -622,13 +655,15 @@ const colorOf = s => `var(${COLORS[s.type] || '--sGap'})`;
 
 /* ---------- song ---------- */
 function validSong(s){ return s && Array.isArray(s.beats) && s.beats.length > 8 && Array.isArray(s.sections) && Number.isInteger(s.bar1Beat); }
-function songKey(s){ return 'cb-edit:' + (s.title || '未命名') + '|' + Math.round(s.duration || 0); }
+// PWA 沒有歌名時用「未命名」，其他版本用空字串（沿用各版本原本的鍵名，改了會讀不到舊的修正）
+function songKey(s){ return 'cb-edit:' + (s.title || (VARIANT === 'pwa' ? '未命名' : '')) + '|' + Math.round(s.duration || 0); }
 function setSong(s, orig){
   SONG = JSON.parse(JSON.stringify(s)); if (orig) ORIG = JSON.parse(JSON.stringify(orig));
-  offset = Number.isFinite(SONG.offsetMs) ? SONG.offsetMs/1000 : 0; $('offset').value = Math.round(offset*1000);
+  // PWA、打包檔的對齊位移跟著每首歌存在 SONG.offsetMs；桌機版、手機版存在 localStorage（cb-offset）
+  if (VARIANT === 'pwa' || VARIANT === 'bundle'){ offset = Number.isFinite(SONG.offsetMs) ? SONG.offsetMs/1000 : 0; $('offset').value = Math.round(offset*1000); }
   B = SONG.beats; BPB = SONG.beatsPerBar || 4; BAR1 = SONG.bar1Beat; LAST = SONG.lastBar; SECS = SONG.sections = normalizeSections(SONG.sections); FILLS = new Set(SONG.fills || []);
   score.firstBar = (SONG.score && Number.isInteger(SONG.score.firstBar)) ? SONG.score.firstBar : 0; $('firstBar').value = score.firstBar;
-  buildLights(); renderHeader(); buildMap(); buildStartSel(); updateTempoUI();
+  buildLights(); renderHeader(); buildMap(); buildStartSel(); if (PHONE) updateTempoUI();
   if (score.osmd){ numberMeasures(); if (!$('scoreWrap').hidden) renderScore(); else score.needsRender = true; }
   if (loop) loop = null;
   lastBeatKey = null; tick(true);
@@ -845,13 +880,26 @@ function pickJson(files){
   return js.find(f => f.name.toLowerCase() === 'song.json') || js.find(f => /song\.auto\.json$/i.test(f.name)) || js[0];
 }
 function pickScore(files){ return files.find(f => /\.(mxl|musicxml)$/i.test(f.name)) || files.find(f => /\.xml$/i.test(f.name) && !/container\.xml$/i.test(f.name)); }
+// 重新開啟同一首歌時，套用之前存在這台裝置的修正；提示文字依版本不同
+const EDIT_TEXT = {
+  ios:    {applied: '已套用你在這台瀏覽器做的修正', useOrig: '改用資料夾裡的版本'},
+  pwa:    {applied: '已套用你之前做的修正', useOrig: '改用匯入時的版本'},
+  bundle: {applied: '已套用你之前在這裡做的修正', useOrig: '改用檔案裡的版本'},
+}[VARIANT];
 function applySongWithEdits(s){
   let use = s, msg = '';
-  try { const saved = localStorage.getItem(songKey(s)); if (saved){ const v = JSON.parse(saved); if (validSong(v)){ use = v; msg = `已套用你之前做的修正（${(v.analysis && v.analysis.editedAt || '').replace('T', ' ')}）。`; } } } catch(e){}
+  try { const saved = localStorage.getItem(songKey(s)); if (saved){ const v = JSON.parse(saved); if (validSong(v)){ use = v; msg = `${EDIT_TEXT.applied}（${(v.analysis && v.analysis.editedAt || '').replace('T', ' ')}）。`; } } } catch(e){}
   setSong(use, s);
   const nt = $('notice');
-  if (msg){ nt.hidden = false; nt.innerHTML = `<span>${esc(msg)}</span><button id="useOrig">改用匯入時的版本</button>`; $('useOrig').onclick = () => $('revert').onclick(); }
+  if (msg){ nt.hidden = false; nt.innerHTML = `<span>${esc(msg)}</span><button id="useOrig">${EDIT_TEXT.useOrig}</button>`; $('useOrig').onclick = () => $('revert').onclick(); }
   else nt.hidden = true;
+}
+// MP3（尤其是 VBR）沒有精確的時間索引：iPad 上跳轉後，實際聽到的位置和回報的時間會差一點，鼓譜游標就會早或晚幾個音符。
+// m4a 有精確索引；打包檔一律轉成 m4a，所以只有 zip、散檔、手機版選檔會遇到
+function mp3Check(blob){
+  const isMp3 = !!blob && (/mpeg|mp3/i.test(blob.type || '') || /\.mp3$/i.test(blob.name || ''));
+  const el = $('mp3Warn'); el.hidden = !isMp3;
+  if (isMp3) el.innerHTML = `<span>⚠ 這首歌的音檔是 MP3。在 iPad 上點小節跳轉後，鼓譜游標可能會比聲音早或晚幾個音符（計數器不受影響）。${VARIANT === 'pwa' ? '建議改匯入這首歌的打包檔（.html），裡面的音檔是 m4a，跳轉比較準。' : '建議改用打包檔（.html），或換成 m4a 音檔。'}</span>`;
 }
 // 讀 .zip（整個練習資料夾壓縮）：取出 song.json、音檔、譜
 async function zipEntries(file){
@@ -975,7 +1023,7 @@ function showLibrary(){
   if (mode !== 'follow') setMode('follow');
   try { audio.pause(); } catch(e){}
   $('practice').hidden = true; $('library').hidden = false; $('loader').hidden = true; document.body.classList.add('inlib');
-  $('songTitle').innerHTML = '數小節練習室<small id="songSub">數小節、抓段落、跟著鼓譜練習</small>'; $('facts').innerHTML = ''; $('notice').hidden = true;
+  $('songTitle').innerHTML = '數小節練習室<small id="songSub">數小節、抓段落、跟著鼓譜練習</small>'; $('facts').innerHTML = ''; $('notice').hidden = true; $('mp3Warn').hidden = true;
   document.title = '數小節練習室'; renderLibrary(); window.scrollTo(0, 0);
 }
 async function openSong(id){
@@ -1011,6 +1059,7 @@ function useAudio(blob){
   audio.onloadedmetadata = onMeta;
   audio.onerror = () => { showErr(`音檔 ${blob.name || ''} 播不了，請換成 m4a、mp3 或 wav。`); };
   try { audio.load(); } catch(e){}
+  mp3Check(blob);
   tick(true);
 }
 $('folder').addEventListener('change', e => { if (e.target.files.length) openFiles(e.target.files); });
@@ -1035,28 +1084,35 @@ document.addEventListener('drop', async e => {
 });
 
 /* ---------- transport ---------- */
-function ensureCtx(){ try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e){} try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch(e){} }
+// iOS 17 起：audioSession 設成 playback，側邊靜音鍵就不會把聲音關掉（只有手機系）
+function ensureCtx(){ if (PHONE){ try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e){} } try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch(e){} }
 function click(accent){
   if (!actx) return; const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
   o.frequency.value = accent ? 1600 : 1000; g.gain.setValueAtTime(accent ? .5 : .28, t); g.gain.exponentialRampToValueAtTime(.001, t + .05);
   o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .06);
 }
 function setPlayIcon(){ $('playIcon').innerHTML = audio.paused ? '<path d="M7 4l13 8-13 8z"/>' : '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'; $('play').setAttribute('aria-label', audio.paused ? '播放' : '暫停'); }
-function togglePlay(){ if (!loaded) return; ensureCtx(); if (audio.paused){ const pr = audio.play(); if (pr && pr.catch) pr.catch(err => showErr('播放失敗：' + err.message)); } else audio.pause(); }
+// 手機系：play() 被擋（iOS 常見）時把原因顯示出來
+function playAudio(){ const pr = audio.play(); if (PHONE && pr && pr.catch) pr.catch(err => showErr('播放失敗：' + err.message)); }
+function togglePlay(){ if (!loaded) return; ensureCtx(); if (audio.paused) playAudio(); else audio.pause(); }
 function seekTo(t, play){
   if (!loaded) return; t = Math.max(0, t);
-  if (audio.readyState < 1){ pendingSeek = t; } else { try { audio.currentTime = t; } catch(e){ pendingSeek = t; } }
-  lastBeatKey = null; metroNext = null;
-  if (play){ ensureCtx(); const pr = audio.play(); if (pr && pr.catch) pr.catch(err => showErr('播放失敗：' + err.message)); }
+  if (!PHONE) audio.currentTime = t;
+  // 手機系：還沒讀到 metadata（iOS 不預載）時先記在 pendingSeek，讀到再跳
+  else if (audio.readyState < 1){ pendingSeek = t; } else { try { audio.currentTime = t; } catch(e){ pendingSeek = t; } }
+  lastBeatKey = null; if (PHONE) metroNext = null;
+  if (play){ ensureCtx(); playAudio(); }
   tick(true);
 }
 function curTime(){ return pendingSeek !== null ? pendingSeek : (audio.currentTime || 0); }
 $('play').onclick = togglePlay;
 const nowBarNo = () => { const p = pos(curTime()); return Math.max(0, Math.min(LAST, p.bar)); };
-$('prevBar').onclick = () => { if (!loaded) return; const p = pos(curTime()); const target = p.frac > 0.12 || !audio.paused && p.frac > 0.25 ? p.bar : p.bar - 1; seekTo(barStart(Math.max(0, target)) + 0.01, !audio.paused); };
-$('nextBar').onclick = () => { if (!loaded) return; seekTo(barStart(Math.min(LAST, nowBarNo() + 1)) + 0.01, !audio.paused); };
-$('secStart').onclick = () => { if (!loaded) return; const s = secOf(nowBarNo()); seekTo(barStart(s ? s.from : nowBarNo()) + 0.01, !audio.paused); };
-$('clickBtn').onclick = () => { const open = $('metroSheet').hidden; $('metroSheet').hidden = !open; if (open){ const mx = document.getElementById('mixer'); if (mx) mx.hidden = true; updateTempoUI(); } };
+if (PHONE){  // 底部操作列
+  $('prevBar').onclick = () => { if (!loaded) return; const p = pos(curTime()); const target = p.frac > 0.12 || !audio.paused && p.frac > 0.25 ? p.bar : p.bar - 1; seekTo(barStart(Math.max(0, target)) + 0.01, !audio.paused); };
+  $('nextBar').onclick = () => { if (!loaded) return; seekTo(barStart(Math.min(LAST, nowBarNo() + 1)) + 0.01, !audio.paused); };
+  $('secStart').onclick = () => { if (!loaded) return; const s = secOf(nowBarNo()); seekTo(barStart(s ? s.from : nowBarNo()) + 0.01, !audio.paused); };
+  $('clickBtn').onclick = () => { const open = $('metroSheet').hidden; $('metroSheet').hidden = !open; if (open){ const mx = document.getElementById('mixer'); if (mx) mx.hidden = true; updateTempoUI(); } };
+}
 /* ---------- 節拍器與速度 ---------- */
 const songBpm = () => (SONG && SONG.bpm) || 100;
 function curBpm(){ return Math.round(songBpm() * (audio.playbackRate || 1)); }
@@ -1085,8 +1141,36 @@ function setSongMuted(on){
 }
 $('tgMute').onclick = () => setSongMuted(!audio.muted);
 const metroVol = () => +$('metroVol').value;
+const pctText = v => Math.round(v * 100) + '%';
 try { const v = localStorage.getItem('cb-metro-vol'); if (v !== null) $('metroVol').value = v; } catch(e){}
-$('metroVol').addEventListener('input', () => { try { localStorage.setItem('cb-metro-vol', $('metroVol').value); } catch(e){} });
+$('metroVolPc').textContent = pctText(metroVol());
+$('metroVol').addEventListener('input', () => { $('metroVolPc').textContent = pctText(metroVol()); try { localStorage.setItem('cb-metro-vol', $('metroVol').value); } catch(e){} });
+// 歌曲音量：iOS 不能改 audio.volume，所以走 Web Audio。所有歌曲聲音（單一音檔或各分軌）最後都接到 songBus 這個總音量。
+// 單一音檔的歌在音量維持 100% 時不接 Web Audio，行為和以前一樣；第一次調低才接上。
+const songVol = () => +$('songVol').value;
+let songBus = null;
+window.__cbSong = {get gain(){ return songBus ? songBus.gain.value : null; }, get wired(){ return !!audio._src; }};  // 方便除錯、測試
+try { const v = localStorage.getItem('cb-song-vol'); if (v !== null) $('songVol').value = v; } catch(e){}
+$('songVolPc').textContent = pctText(songVol());
+function songOut(){
+  if (!songBus){ songBus = actx.createGain(); songBus.gain.value = songVol() * songVol(); songBus.connect(actx.destination); }
+  return songBus;
+}
+function applySongVol(){ if (songBus && actx) songBus.gain.setTargetAtTime(songVol() * songVol(), actx.currentTime, 0.02); }  // 平方：比較符合耳朵的感覺
+function wireSong(){
+  if (typeof MIX !== 'undefined' && MIX.stems.length > 1) return wireMix();   // 分軌：混音器會接到 songOut()
+  if (!audio._src && songVol() >= 0.999) return;
+  ensureCtx(); if (!actx) return;
+  if (!audio._src){ audio._src = actx.createMediaElementSource(audio); audio._gain = actx.createGain(); audio._src.connect(audio._gain).connect(songOut()); }
+  applySongVol();
+}
+$('songVol').addEventListener('input', () => {
+  $('songVolPc').textContent = pctText(songVol());
+  try { localStorage.setItem('cb-song-vol', $('songVol').value); } catch(e){}
+  if (audio.muted && songVol() > 0) setSongMuted(false);   // 靜音中拖音量＝想聽到歌
+  wireSong(); applySongVol();
+});
+audio.addEventListener('play', wireSong);
 // 節拍器：用 Web Audio 的時間表提前排好每一拍，比跟著畫面更新觸發準
 let metroNext = null;
 function clickAt(when, accent){
@@ -1156,10 +1240,10 @@ function wireMix(){
   ensureCtx(); if (!actx) return;
   MIX.stems.forEach(st => {
     if (st.el === audio){
-      if (!audio._src){ audio._src = actx.createMediaElementSource(audio); audio._gain = actx.createGain(); audio._src.connect(audio._gain).connect(actx.destination); }
+      if (!audio._src){ audio._src = actx.createMediaElementSource(audio); audio._gain = actx.createGain(); audio._src.connect(audio._gain).connect(songOut()); }
       st.gain = audio._gain;
     } else if (!st.src){
-      st.src = actx.createMediaElementSource(st.el); st.gain = actx.createGain(); st.src.connect(st.gain).connect(actx.destination);
+      st.src = actx.createMediaElementSource(st.el); st.gain = actx.createGain(); st.src.connect(st.gain).connect(songOut());   // 各軌音量 × 歌曲總音量
     }
   });
   applyGains();
@@ -1226,14 +1310,22 @@ async function holdScreen(on){
     if (!on && wake){ await wake.release(); wake = null; }
   } catch(e){ wake = null; }
 }
-audio.onplay = () => { setPlayIcon(); holdScreen(true); };
-audio.onpause = () => { setPlayIcon(); holdScreen(false); };
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !audio.paused) holdScreen(true); });
+if (PHONE){  // 手機系：播放時保持螢幕亮著
+  audio.onplay = () => { setPlayIcon(); holdScreen(true); };
+  audio.onpause = () => { setPlayIcon(); holdScreen(false); };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !audio.paused) holdScreen(true); });
+} else audio.onplay = audio.onpause = setPlayIcon;
 audio.onended = () => { setPlayIcon(); if (quiz && quiz.running) finishQuiz(); };
 $('seek').addEventListener('input', e => seekTo(+e.target.value));
 const setRate = v => { audio.playbackRate = +v; $('rate').value = v; $('rate2').value = v; };
 $('rate').onchange = e => setRate(e.target.value); $('rate2').onchange = e => setRate(e.target.value);
-$('offset').onchange = e => { offset = (+e.target.value || 0)/1000; if (SONG){ SONG.offsetMs = Math.round(offset*1000); edited(); } };
+// 對齊位移：桌機版、手機版存在 localStorage（cb-offset）；PWA、打包檔跟著歌存在 SONG.offsetMs
+$('offset').onchange = e => {
+  offset = (+e.target.value || 0)/1000;
+  if (VARIANT === 'desktop' || VARIANT === 'ios'){ try { localStorage.setItem('cb-offset', Math.round(offset*1000)); } catch(_){} buildMap(); if (score.ready) drawSectionMarks(); tick(true); }
+  else if (SONG){ SONG.offsetMs = Math.round(offset*1000); edited(); }
+  else if (VARIANT === 'bundle'){ buildMap(); tick(true); }
+};
 $('offReset').onclick = () => { $('offset').value = 0; $('offset').onchange({target: $('offset')}); };
 
 let lastBeatKey = null, nowBar = null, lights = [];
@@ -1246,6 +1338,7 @@ function tick(force){
   const {bar, beat} = pos(t);
   const key = bar + ':' + beat;
   if (key !== lastBeatKey || force){
+    if (!PHONE && !force && !audio.paused && lastBeatKey !== null && $('click').checked && mode === 'follow' && bar >= 0 && bar <= LAST && (beat === 1 || !$('clickOne').checked)) click(beat === 1);
     lastBeatKey = key;
     const hide = mode !== 'follow' && quiz && quiz.running;
     const showL = !hide || $('showLights').checked;
@@ -1261,7 +1354,7 @@ function tick(force){
     else { const s = secOf(bar); $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = s ? `段落：<b>${esc(secLabel(s))}</b> · 這段第 ${bar - s.from + 1}/${s.to - s.from + 1} 小節` : '段落：<b>—</b>'; }
     if (nowBar !== bar){ if (barEls[nowBar]) barEls[nowBar].classList.remove('now'); if (!hide && barEls[bar]) barEls[bar].classList.add('now'); nowBar = bar; }
   }
-  metroSchedule(t);
+  if (PHONE) metroSchedule(t);  // 手機系用 Web Audio 排程；桌機版在上面每拍即時響
   if (quiz && quiz.running) quizTick(t);
   if (score.ready && !$('scoreWrap').hidden) syncScore(t);
 }
@@ -1284,7 +1377,7 @@ function setMode(m){
   if (quiz && quiz.running) finishQuiz();
   mode = m; Object.entries(MODES).forEach(([k, id]) => $(id).setAttribute('aria-pressed', k === m));
   $('panelFollow').hidden = m !== 'follow'; $('panelQuiz').hidden = m === 'follow';
-  $('dockTap').hidden = m === 'follow'; document.body.classList.toggle('quizzing', m !== 'follow');
+  if (PHONE){ $('dockTap').hidden = m === 'follow'; document.body.classList.toggle('quizzing', m !== 'follow'); }
   $('results').hidden = true; $('toast').innerHTML = '';
   if (m !== 'follow' && editing) $('editBtn').onclick();
   showMap(m === 'follow');
@@ -1335,8 +1428,10 @@ function quizTick(t){
   quiz.targets.forEach(x => { if (!x.state && (t - x.T)/beatLen(x.T) > 1.5){ x.state = 'miss'; if ($('instant').checked) say(`錯過：第 ${x.bar} 小節 · ${x.label}`, 'no'); } });
 }
 function say(msg, cls){ $('toast').innerHTML = `<span class="${cls || ''}">${esc(msg)}</span>`; }
-$('tap').addEventListener('pointerdown', e => { e.preventDefault(); tapNow(); });
-$('tap').addEventListener('contextmenu', e => e.preventDefault());
+if (PHONE){  // 手機：pointerdown 不等 click，減少延遲；長按不跳選單
+  $('tap').addEventListener('pointerdown', e => { e.preventDefault(); tapNow(); });
+  $('tap').addEventListener('contextmenu', e => e.preventDefault());
+} else $('tap').onclick = tapNow;
 document.addEventListener('keydown', e => {
   if (e.target.matches('input,select,textarea')) return;
   if (e.code === 'Space'){ e.preventDefault(); if (mode !== 'follow' && quiz && quiz.running) tapNow(); else togglePlay(); }
@@ -1434,7 +1529,8 @@ function renderScore(){
   const o = score.osmd; if (!o) return;
   const w = $('score').clientWidth; if (!w){ score.needsRender = true; return; }
   try {
-    o.zoom = (w < 420 ? 0.46 : w < 560 ? 0.52 : 0.65) * zoomF;
+    o.zoom = PHONE ? (w < 420 ? 0.46 : w < 560 ? 0.52 : 0.65) * zoomF   // 手機系：可以用 A−／A＋ 調整
+                   : (w < 560 ? 0.5 : w < 800 ? 0.65 : 0.78);
     o.render();
     score.width = w; score.needsRender = false;
     const c0 = o.cursors[0];
@@ -1529,26 +1625,47 @@ function scrollCursorTo(where, smooth){
   else if (where === 'top') dy = r.top - top - 8;
   else if (r.top < top) dy = r.top - top - 8;
   else if (r.bottom > bottom) dy = r.bottom - bottom + 8;
-  if (Math.abs(dy) > 2) window.scrollBy({top: dy, behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto'});
+  // 捲到絕對位置：同一個畫面更新內重複呼叫也不會疊加（iOS 連續兩次平滑 scrollBy 可能會累加）
+  if (Math.abs(dy) > 2) window.scrollTo({top: window.scrollY + dy, behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto'});
 }
 const followMode = () => $('followMode').value;
 const afterLayout = fn => requestAnimationFrame(() => requestAnimationFrame(fn));
+// 所有「等版面更新後再捲」的請求合併成一次：還沒執行前又有新請求，就只做最後那個
+let scrollReq = null;
+function requestScroll(where){
+  const pending = scrollReq !== null; scrollReq = where;
+  if (!pending) afterLayout(() => { const w = scrollReq; scrollReq = null; if (w) scrollCursorTo(w, true); });
+}
 function followScroll(){
+  if (!PHONE) return followScrollDesktop();
   const fm = followMode(); if (fm === 'off' || audio.paused) return;
   const el = score.osmd.cursors[0].cursorElement; if (!el) return;
   if (el.style.top === score.lastTop) return;   // 只在換行時捲動
   score.lastTop = el.style.top;
-  if (fm === 'center') afterLayout(() => scrollCursorTo('center', true));
+  if (fm === 'center') requestScroll('center');
   else { const r = cursorRect(); if (!r) return; const {top, bottom} = scoreViewBand(); if (r.top < top || r.bottom > bottom) scrollCursorTo('top', true); }
+}
+// 桌機版：「播放時自動捲動」打勾時，游標超出畫面才捲
+function followScrollDesktop(){
+  if (!$('follow').checked || audio.paused) return;
+  const el = score.osmd.cursors[0].cursorElement; if (!el) return;
+  if (el.style.top === score.lastTop) return;
+  score.lastTop = el.style.top;
+  const r = el.getBoundingClientRect(); if (!r.height) return;
+  const top = document.querySelector('.transport').getBoundingClientRect().bottom + 12;
+  if (r.top < top || r.bottom > window.innerHeight - 16)
+    window.scrollBy({top: r.top - top - 8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
 }
 // 點了某一小節之後：「保持在中間」就把它移到中間，其他方式只確保看得到
 function keepScoreInView(){
   score.lastTop = null;
-  afterLayout(() => { if (followMode() === 'center') scrollCursorTo('center', true); else scrollCursorTo('visible', true); });
+  requestScroll(followMode() === 'center' ? 'center' : 'visible');
   if (score.osmd) score.lastTop = score.osmd.cursors[0].cursorElement.style.top;
 }
-try { const v = localStorage.getItem('cb-follow'); if (v) $('followMode').value = v; } catch(e){}
-$('followMode').onchange = () => { try { localStorage.setItem('cb-follow', followMode()); } catch(e){} score.lastTop = null; if (!audio.paused) followScroll(); };
+if (PHONE){  // 跟隨方式（置中／翻頁／不捲動）
+  try { const v = localStorage.getItem('cb-follow'); if (v) $('followMode').value = v; } catch(e){}
+  $('followMode').onchange = () => { try { localStorage.setItem('cb-follow', followMode()); } catch(e){} score.lastTop = null; if (!audio.paused) followScroll(); };
+}
 $('score').addEventListener('click', e => {
   if (!score.ready) return; const layer = cursorLayer(); if (!layer) return;
   const rc = layer.getBoundingClientRect(), z = score.osmd.zoom * 10;
@@ -1557,19 +1674,46 @@ $('score').addEventListener('click', e => {
     const m = gm(i); if (!m) continue; const p = m.PositionAndShape;
     if (ux >= p.AbsolutePosition.x && ux <= p.AbsolutePosition.x + p.Size.width && uy >= p.AbsolutePosition.y - 5 && uy <= p.AbsolutePosition.y + 10){
       const bar = i + score.firstBar;
-      if (loaded){ seekTo(barStart(bar) + 0.01); keepScoreInView(); }
-      else { $('fileHint').textContent = `先開啟音檔，才能跳到第 ${bar} 小節。`; $('loader').scrollIntoView({behavior: 'smooth', block: 'center'}); }
+      if (loaded){ seekTo(barStart(bar) + 0.01); if (PHONE) keepScoreInView(); }
+      else { $('fileHint').textContent = `先開啟音檔，才能跳到第 ${bar} 小節。`; if (PHONE) $('loader').scrollIntoView({behavior: 'smooth', block: 'center'}); }
       return;
     }
   }
 });
-let rsT; window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => {
+// 譜的容器寬度變了（轉向、調整版面寬度）才重畫
+function rerenderIfResized(){
   if (!score.osmd) return; const w = $('score').clientWidth;
   if (Math.abs(w - score.width) > 8){ if ($('scoreWrap').hidden || !w) score.needsRender = true; else renderScore(); }
-}, 250); });
+}
+let rsT; window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => { if (PHONE) updatePageWidthUI(); rerenderIfResized(); }, 250); });
+// 版面寬度（手機系）：平板比較寬，可以把內容拉寬，鼓譜一行放得下更多小節。滑到最右邊＝滿版
+const WIDTH_MIN = 680;
+function pageWidthMax(){ return Math.max(WIDTH_MIN + 20, Math.ceil(window.innerWidth / 20) * 20); }
+function applyPageWidth(){
+  const full = pageWidth === 'full' || +pageWidth >= pageWidthMax();
+  document.documentElement.style.setProperty('--wrap-max', full ? 'none' : Math.max(WIDTH_MIN, +pageWidth || WIDTH_MIN) + 'px');
+}
+function updatePageWidthUI(){
+  const r = $('pageWidth'), mx = pageWidthMax(); r.min = WIDTH_MIN; r.max = mx;
+  const full = pageWidth === 'full' || +pageWidth >= mx;
+  r.value = full ? mx : Math.max(WIDTH_MIN, +pageWidth || WIDTH_MIN);
+  $('pageWidthLab').textContent = full ? '滿版' : +r.value <= WIDTH_MIN ? '標準' : r.value + 'px';
+  applyPageWidth();
+}
+if (PHONE){
+  updatePageWidthUI();
+  let pwT;
+  $('pageWidth').addEventListener('input', e => {
+    const v = +e.target.value; pageWidth = v >= +e.target.max ? 'full' : v;
+    try { localStorage.setItem('cb-width', pageWidth); } catch(_){}
+    updatePageWidthUI();
+    clearTimeout(pwT); pwT = setTimeout(rerenderIfResized, 300);   // 拖動時只改版面，停下來才重畫鼓譜
+  });
+}
 $('secMarks').onchange = () => { if (score.ready) drawSectionMarks(); };
+// 譜的大小 A−／A＋（手機系）
 function setZoom(f){ zoomF = Math.max(0.6, Math.min(2, Math.round(f*100)/100)); try { localStorage.setItem('cb-zoom', zoomF); } catch(e){} if (score.osmd) renderScore(); }
-$('zoomIn').onclick = () => setZoom(zoomF * 1.15); $('zoomOut').onclick = () => setZoom(zoomF / 1.15);
+if (PHONE){ $('zoomIn').onclick = () => setZoom(zoomF * 1.15); $('zoomOut').onclick = () => setZoom(zoomF / 1.15); }
 $('timeMarks').onchange = () => { if (score.ready) drawSectionMarks(); };
 $('firstBar').onchange = e => {
   score.firstBar = Math.round(+e.target.value || 0);
