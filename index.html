@@ -345,6 +345,7 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .mxrow .pc{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-align:right}
 .mxrow.off .nm,.mxrow.off .pc{opacity:.45}
 .mixer .mxnote{font-size:12px;color:var(--muted);margin:0}
+.mixer .mxdebug{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin:0;line-height:1.5;word-break:break-all}
 .library{padding-block:8px 40px}
 .libhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:10px}
 .libhead h2{font-family:var(--f-display);font-weight:800;font-size:30px;letter-spacing:.01em}
@@ -552,6 +553,7 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
       </div>
       <div id="mxRows"></div>
       <p class="mxnote">M＝靜音，S＝獨奏（只聽這幾軌）。設定會跟著這首歌記住。</p>
+      <p class="mxdebug" id="mxDebug" hidden></p>
     </div>
     <div class="seekrow">
       <input type="range" id="seek" min="0" max="300" step="0.01" value="0" aria-label="播放位置" disabled>
@@ -1229,10 +1231,11 @@ function setupStems(list){
       el.src = URL.createObjectURL(st.file); try { el.load(); } catch(e){}
     }
     const sv = saved[st.key] || {};
-    return {key: st.key, label: STEM_LABEL[st.key] || st.key, el, vol: sv.vol ?? 1, mute: !!sv.mute, solo: !!sv.solo, src: null, gain: null};
+    return {key: st.key, label: STEM_LABEL[st.key] || st.key, el, vol: sv.vol ?? 1, mute: !!sv.mute, solo: !!sv.solo, src: null, gain: null,
+            errs: [], err: 0, nudge: 0, settle: 0, seeks: 0};  // 同步狀態，見 driftCheck
   });
   $('mixBtn').hidden = MIX.stems.length < 2;
-  renderMixer();
+  renderMixer(); showMixDebug();
 }
 // 第一次播放（使用者點擊時）才接上 Web Audio，iOS 規定要在點擊當下建立
 function wireMix(){
@@ -1289,18 +1292,76 @@ document.querySelector('#mixer .presets').addEventListener('click', e => {
   wireMix(); renderMixer();
 });
 $('mixBtn').onclick = () => { const h = !$('mixer').hidden; $('mixer').hidden = h; $('mixBtn').setAttribute('aria-pressed', !h); if (!h){ const ms = document.getElementById('metroSheet'); if (ms) ms.hidden = true; } };
-// 跟隨主分軌
+// 跟隨主分軌（v1.4）
+// iPad 的 currentTime 讀數本身會跳動幾十 ms。v1.3 以前每 0.3 秒只要差超過 25ms 就跳轉，
+// 結果跟隨軌一秒被拉三次、人聲斷斷續續。現在改成：看最近幾次誤差的中位數，
+// 小誤差用 playbackRate 微調慢慢追（不會斷音），大誤差才跳轉。
+const SYNC_EVERY = 300;       // ms：檢查間隔
+const SYNC_SAMPLES = 5;       // 取最近幾次誤差的中位數（至少 3 次才判斷）
+const SYNC_DEAD = 0.035;      // 秒：中位數在這以內不處理
+const SYNC_DONE = 0.012;      // 秒：微調中追到這以內（或追過頭）就恢復原速
+const SYNC_HARD = 0.15;       // 秒：超過才跳轉
+const SYNC_GAIN = 0.2;        // 微調比例：差 0.1 秒 → 速度差 2%
+const SYNC_MAX_NUDGE = 0.02;  // 速度最多差 ±2%
+const SYNC_STEP = 0.0025;     // 微調以 0.25% 為一格，避免一直改 playbackRate
+const SYNC_SETTLE = 800;      // ms：跳轉、改速度後先不量（剛跳完的讀數不準）
 const followers = () => MIX.stems.filter(st => st.el !== audio);
-function syncFollower(st, lead){ try { if (Math.abs(st.el.currentTime - audio.currentTime) > 0.025) st.el.currentTime = audio.currentTime + (lead || 0); } catch(e){} }
+const median = a => { const s = a.slice().sort((x, y) => x - y), n = s.length; return n % 2 ? s[n >> 1] : (s[n / 2 - 1] + s[n / 2]) / 2; };
+function resetSync(st){
+  st.errs = []; st.nudge = 0; st.settle = performance.now() + SYNC_SETTLE;
+  st.el.playbackRate = audio.playbackRate;
+}
+// 立刻對齊：播放、跳轉時用（這些時候本來就會停一下），以及誤差太大時
+function hardSync(st, lead){
+  try { if (Math.abs(st.el.currentTime - audio.currentTime) > 0.025) st.el.currentTime = audio.currentTime + (lead || 0); } catch(e){}
+  resetSync(st);
+}
+// 播放中定期檢查（e > 0 表示跟隨軌超前）
+function driftCheck(st){
+  if (st.el.paused){ const pr = st.el.play(); if (pr && pr.catch) pr.catch(() => {}); }
+  if (performance.now() < st.settle) return;
+  st.errs.push(st.el.currentTime - audio.currentTime);
+  if (st.errs.length > SYNC_SAMPLES) st.errs.shift();
+  if (st.errs.length < 3) return;
+  const e = median(st.errs); st.err = e;
+  if (Math.abs(e) > SYNC_HARD){ st.seeks++; hardSync(st, 0.01); return; }
+  let nudge;
+  if (st.nudge) nudge = (Math.abs(e) < SYNC_DONE || Math.sign(e) === Math.sign(st.nudge)) ? 0 : -e * SYNC_GAIN;
+  else nudge = Math.abs(e) > SYNC_DEAD ? -e * SYNC_GAIN : 0;
+  if (nudge){
+    nudge = Math.max(-SYNC_MAX_NUDGE, Math.min(SYNC_MAX_NUDGE, nudge));
+    nudge = (Math.round(Math.abs(nudge) / SYNC_STEP) || 1) * SYNC_STEP * Math.sign(nudge);  // 至少一格
+  }
+  if (nudge !== st.nudge){ st.nudge = nudge; st.el.playbackRate = audio.playbackRate * (1 + nudge); }
+}
+// 除錯顯示：網址加 ?debug（?debug=0 關掉），或連點「分軌混音」標題 5 下切換；記在 cb-debug
+let mixDebug = false;
+try {
+  const q = new URLSearchParams(location.search).get('debug');
+  if (q !== null) localStorage.setItem('cb-debug', q === '0' ? '' : '1');
+  mixDebug = localStorage.getItem('cb-debug') === '1';
+} catch(e){}
+function showMixDebug(){
+  const el = $('mxDebug'); el.hidden = !mixDebug;
+  if (mixDebug) el.textContent = '同步　' + (followers().map(st => `${st.label}：跳轉 ${st.seeks}・差 ${Math.round((st.err || 0) * 1000)}ms・速度 ${st.nudge > 0 ? '+' : ''}${((st.nudge || 0) * 100).toFixed(2)}%`).join('｜') || '沒有跟隨軌');
+}
+let dbgTaps = [];
+document.querySelector('#mixer .mxhead b').addEventListener('click', () => {
+  const n = Date.now(); dbgTaps = dbgTaps.filter(t => n - t < 2000).concat(n);
+  if (dbgTaps.length < 5) return;
+  dbgTaps = []; mixDebug = !mixDebug;
+  try { localStorage.setItem('cb-debug', mixDebug ? '1' : ''); } catch(e){}
+  showMixDebug();
+});
 audio.addEventListener('play', () => {
   wireMix();
-  followers().forEach(st => { st.el.playbackRate = audio.playbackRate; syncFollower(st); const pr = st.el.play(); if (pr && pr.catch) pr.catch(() => {}); });
+  followers().forEach(st => { hardSync(st); const pr = st.el.play(); if (pr && pr.catch) pr.catch(() => {}); });
   clearInterval(MIX.timer);
-  if (MIX.stems.length > 1) MIX.timer = setInterval(() => { if (!audio.paused) followers().forEach(st => { if (st.el.paused){ const pr = st.el.play(); if (pr && pr.catch) pr.catch(() => {}); } syncFollower(st, 0.01); }); }, 300);
+  if (MIX.stems.length > 1) MIX.timer = setInterval(() => { if (!audio.paused){ followers().forEach(driftCheck); showMixDebug(); } }, SYNC_EVERY);
 });
 audio.addEventListener('pause', () => { clearInterval(MIX.timer); followers().forEach(st => st.el.pause()); });
-audio.addEventListener('seeked', () => followers().forEach(st => syncFollower(st)));
-audio.addEventListener('ratechange', () => followers().forEach(st => { st.el.playbackRate = audio.playbackRate; }));
+audio.addEventListener('seeked', () => followers().forEach(st => hardSync(st)));
+audio.addEventListener('ratechange', () => followers().forEach(resetSync));
 audio.addEventListener('ended', () => followers().forEach(st => st.el.pause()));
 
 let wake = null;
