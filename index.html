@@ -933,10 +933,11 @@ const libDel = id => libTx('readwrite', st => st.delete(id));
 const songId = s => (s.title || '未命名') + '|' + Math.round(s.duration || 0);
 const MIME = {m4a: 'audio/mp4', aac: 'audio/aac', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', opus: 'audio/ogg', flac: 'audio/flac'};
 function setLibMsg(t, cls){ $('libMsg').innerHTML = t ? `<span class="${cls || ''}">${esc(t)}</span>` : ''; }
-function makeRec(s, audio, score, stems){
+function makeRec(s, audio, score, stems, multi){
   return {id: songId(s), title: s.title || '未命名', artist: s.artist || '', bpm: s.bpm, lastBar: s.lastBar, sections: (s.sections || []).length,
           json: JSON.stringify(s), audio: audio ? audio.buf : null, audioType: audio ? audio.type : null, audioName: audio ? audio.name : null,
-          scoreText: score ? score.text : null, scoreName: score ? score.name : null, stems: stems && stems.length > 1 ? stems : null, added: Date.now(), last: 0};
+          scoreText: score ? score.text : null, scoreName: score ? score.name : null, stems: stems && stems.length > 1 ? stems : null,
+          multi: multi || null, added: Date.now(), last: 0};
 }
 // 打包好的歌曲 .html（make_bundle.py 產生）
 async function recFromBundle(f){
@@ -950,8 +951,11 @@ async function recFromBundle(f){
   const ab = ma && ma[3].replace(/\s+/g, ''), sb = ms && ms[2].replace(/\s+/g, '');
   const stems = [...txt.matchAll(/<script type="text\/plain" class="cb-stem" data-key="([^"]*)" data-mime="([^"]*)" data-name="([^"]*)">([\s\S]*?)<\/script>/g)]
     .map(m => ({key: m[1], type: m[2] || 'audio/mp4', name: unesc(m[3]), buf: b64Bytes(m[4].replace(/\s+/g, '')).buffer}));
+  // make_bundle.py 1.2：四軌合成一個 7.1 聲道 m4a
+  const mm = txt.match(/<script type="text\/plain" id="cb-multi" data-mime="([^"]*)" data-name="([^"]*)" data-layout="([^"]*)">([\s\S]*?)<\/script>/);
+  const multi = mm ? {type: mm[1] || 'audio/mp4', name: unesc(mm[2]), layout: JSON.parse(unesc(mm[3])), buf: b64Bytes(mm[4].replace(/\s+/g, '')).buffer} : null;
   return makeRec(s, ab && ab.length > 100 ? {buf: b64Bytes(ab).buffer, type: ma[1] || 'audio/mp4', name: unesc(ma[2])} : null,
-                    sb && sb.length > 100 ? {text: new TextDecoder().decode(b64Bytes(sb)), name: unesc(ms[1])} : null, stems);
+                    sb && sb.length > 100 ? {text: new TextDecoder().decode(b64Bytes(sb)), name: unesc(ms[1])} : null, stems, multi);
 }
 // song.json＋音檔＋鼓譜（散檔或 zip 解開後）
 async function recFromFiles(files){
@@ -1034,7 +1038,8 @@ async function openSong(id){
   r.last = Date.now(); libPut(r).catch(() => {}); try { localStorage.setItem('cb-last', id); } catch(e){}
   $('library').hidden = true; $('practice').hidden = false; $('loader').hidden = false; document.body.classList.remove('inlib');
   applySongWithEdits(JSON.parse(r.json)); applyView();
-  if (r.stems && r.stems.length > 1){ setupStems(r.stems.map(st => ({key: st.key, file: new File([st.buf], st.name || st.key, {type: st.type || 'audio/mp4'})}))); $('fileHint').textContent = `${r.stems.length} 軌分軌，按下方「混音」調整`; }
+  if (r.multi){ setupMulti(new File([r.multi.buf], r.multi.name || 'stems.m4a', {type: r.multi.type || 'audio/mp4'}), r.multi.layout); $('fileHint').textContent = `${Object.keys(r.multi.layout).length} 軌分軌（單一檔），按下方「混音」調整`; }
+  else if (r.stems && r.stems.length > 1){ setupStems(r.stems.map(st => ({key: st.key, file: new File([st.buf], st.name || st.key, {type: st.type || 'audio/mp4'})}))); $('fileHint').textContent = `${r.stems.length} 軌分軌，按下方「混音」調整`; }
   else if (r.audio){ const f = new File([r.audio], r.audioName || 'audio', {type: r.audioType || 'audio/mp4'}); folderAudio = [f]; useAudio(f); $('fileHint').textContent = ''; }
   else { loaded = false; $('play').disabled = true; $('fileHint').textContent = '這首沒有音檔，請重新匯入含音檔的版本。'; }
   if (r.scoreText){ const txt = r.scoreText; initScore(async () => txt); }
@@ -1152,7 +1157,7 @@ $('metroVol').addEventListener('input', () => { $('metroVolPc').textContent = pc
 // 單一音檔的歌在音量維持 100% 時不接 Web Audio，行為和以前一樣；第一次調低才接上。
 const songVol = () => +$('songVol').value;
 let songBus = null;
-window.__cbSong = {get gain(){ return songBus ? songBus.gain.value : null; }, get wired(){ return !!audio._src; }};  // 方便除錯、測試
+window.__cbSong = {get gain(){ return songBus ? songBus.gain.value : null; }, get wired(){ return !!audio._src; }, get bus(){ return songBus; }};  // 方便除錯、測試
 try { const v = localStorage.getItem('cb-song-vol'); if (v !== null) $('songVol').value = v; } catch(e){}
 $('songVolPc').textContent = pctText(songVol());
 function songOut(){
@@ -1217,8 +1222,133 @@ function mixKey(){ return 'cb-mix:' + (SONG ? (SONG.title || '未命名') + '|' 
 function teardownStems(){
   clearInterval(MIX.timer); MIX.timer = null;
   MIX.stems.forEach(st => { if (st.el !== audio){ try { st.el.pause(); } catch(e){} try { URL.revokeObjectURL(st.el.src); } catch(e){} try { st.src && st.src.disconnect(); } catch(e){} } });
+  teardownMulti();
   MIX.stems = []; if (audio._gain) audio._gain.gain.value = 1;
   $('mixBtn').hidden = true; $('mixer').hidden = true; $('mixBtn').setAttribute('aria-pressed', 'false');
+}
+/* ---------- 單一檔多聲道（v1.5，make_bundle.py 1.2 的 cb-multi） ----------
+   四軌合成一個 7.1 聲道 m4a，只用主播放器 audio 播，接上 Web Audio 後用 ChannelSplitter 拆成各軌。
+   所有分軌共用一個時鐘，不需要同步校正（多個播放器在 iPad 上跳轉會斷音，見 driftCheck）。
+   layout 記的是檔案裡的聲道位置（ffmpeg 7.1 順序 FL FR FC LFE BL BR SL SR → 0～7），
+   但各瀏覽器解碼後交給 Web Audio 的順序不同，要用 MC_MAP 換算（實測：iPad Safari 26、Chromium 156）。
+   用哪一張表不靠 User-Agent 猜：重低音聲道放了 30Hz 的引導音，它出現在第幾個聲道就知道是哪一張
+   （iPad 在第 8、Chromium 在第 4）。播放前先用 User-Agent 猜一張，聽到引導音後如果不對就換。
+   注意：最早量 iPad 的測試檔是用 ffmpeg join 做的，join 會把第一個單聲道輸入放到中央聲道，
+   位置和以為的不同；這裡的表是改用 amerge＋channelmap 的檔案重新換算的。 */
+// 檔案第 i 聲道 → Web Audio 拿到的第 MC_MAP[i] 聲道
+const MC_MAP = {
+  webkit:   [1, 2, 0, 7, 5, 6, 3, 4],   // iPad Safari：照 AAC 內部的順序給（C L R Ls Rs Lrs Rrs LFE）
+  chromium: [0, 1, 2, 3, 4, 5, 6, 7],   // 桌機 Chromium：照 ffmpeg 的順序給，不用換
+};
+MIX.maps = MC_MAP;   // 方便除錯、測試（模擬順序不明的裝置）
+const MC_PILOT = 3;   // 檔案第 3 聲道（重低音）是 30Hz 的引導音，用來確認這台裝置有把聲道分開
+const MC_ENGINE = (() => {
+  const ua = navigator.userAgent;
+  const ios = /iP(hone|od|ad)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return ios || (/Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR|Android/.test(ua)) ? 'webkit' : 'chromium';
+})();
+const MC_CHECK_SEC = 3;   // 播放這麼多秒還找不到引導音（或位置不在任何一張表裡），就改成不分軌
+// layout: {drums:[0,1], bass:[2], …}
+function setupMulti(file, layout){
+  teardownStems();
+  MIX.loading = true; useAudio(file); MIX.loading = false;
+  let saved = {}; try { saved = JSON.parse(localStorage.getItem(mixKey()) || '{}'); } catch(e){}
+  const keys = Object.keys(layout).sort((a, b) => STEM_ORDER.indexOf(a) - STEM_ORDER.indexOf(b));
+  MIX.multi = {layout, engine: MC_ENGINE, map: MC_MAP[MC_ENGINE], state: 'idle', split: null, nodes: [], probes: null, played: 0, lastT: null, maxOther: -Infinity, timer: null};
+  MIX.stems = keys.map(key => {
+    const sv = saved[key] || {};
+    return {key, label: STEM_LABEL[key] || key, el: audio, vol: sv.vol ?? 1, mute: !!sv.mute, solo: !!sv.solo, gain: null, chans: layout[key]};
+  });
+  $('mixBtn').hidden = MIX.stems.length < 2;
+  renderMixer(); showMixDebug();
+}
+function teardownMulti(){
+  const M = MIX.multi; if (!M) return;
+  clearInterval(M.timer);
+  M.nodes.forEach(n => { try { n.disconnect(); } catch(e){} });
+  if (audio._src){   // 主播放器接回單一音檔的路徑（metronome.js 的 wireSong）
+    try { audio._src.disconnect(); } catch(e){}
+    if (actx){ if (!audio._gain) audio._gain = actx.createGain(); audio._src.connect(audio._gain).connect(songOut()); }
+  }
+  MIX.multi = null;
+}
+function wireMulti(){
+  const M = MIX.multi; if (M.split) return;
+  if (!audio._src){ audio._src = actx.createMediaElementSource(audio); audio._gain = actx.createGain(); }
+  try { audio._src.disconnect(); } catch(e){}
+  const split = actx.createChannelSplitter(8); M.split = split; M.nodes.push(split);
+  audio._src.connect(split);
+  MIX.stems.forEach(st => {
+    st.merge = actx.createChannelMerger(2); st.gain = actx.createGain();
+    st.merge.connect(st.gain).connect(songOut());
+    M.nodes.push(st.merge, st.gain);
+  });
+  routeMulti();
+  // 檢查引導音：在換算後的位置聽得到 30Hz、而且沒有高頻，才表示聲道有分開、順序也對
+  const probes = Array.from({length: 8}, (_, i) => { const a = actx.createAnalyser(); a.fftSize = 4096; a.smoothingTimeConstant = 0; split.connect(a, i); M.nodes.push(a); return a; });
+  M.probes = probes; M.state = 'checking';
+  M.timer = setInterval(checkMulti, 250);
+}
+// 依 M.map 把拆開的聲道接到各軌（換表時先拆掉再接）
+function routeMulti(){
+  const M = MIX.multi;
+  MIX.stems.forEach(st => {
+    try { M.split.disconnect(st.merge); } catch(e){}
+    st.chans.forEach((c, j) => {
+      if (st.chans.length === 1){ M.split.connect(st.merge, M.map[c], 0); M.split.connect(st.merge, M.map[c], 1); }   // 單聲道（貝斯）放中間
+      else M.split.connect(st.merge, M.map[c], j);
+    });
+  });
+}
+function checkMulti(){
+  const M = MIX.multi; if (!M || M.state !== 'checking') return;
+  if (audio.paused) return;
+  const t = audio.currentTime;
+  if (M.lastT !== null && t > M.lastT) M.played += Math.min(t - M.lastT, 0.5);
+  M.lastT = t;
+  const sr = actx.sampleRate, n = M.probes[0].frequencyBinCount, data = new Float32Array(n), hz = b => Math.round(b * M.probes[0].fftSize / sr);
+  // 一個頻帶裡最強的那一格：[dB, 第幾格]（data 要先用 getFloatFrequencyData 讀好）
+  const peak = (lo, hi) => { let m = -Infinity, at = -1; for (let b = hz(lo); b <= hz(hi); b++) if (data[b] > m){ m = data[b]; at = b; } return [m, at]; };
+  // 引導音：15～300Hz 裡最強的頻率落在 25～35Hz、而且 300Hz 以上幾乎沒有聲音。
+  // 只看「25～35Hz 有沒有聲音」不夠：純粹的低音（例如 82Hz）洩漏到 30Hz 附近的能量也會超過門檻。
+  // 同一個聲道連續 3 次（約 0.75 秒）都符合才算，避免把某一瞬間只剩極低音的貝斯當成引導音
+  const cand = [];
+  for (let i = 0; i < 8; i++){
+    M.probes[i].getFloatFrequencyData(data);
+    const [low, at] = peak(15, 300), [high] = peak(300, 4000);
+    if (i >= 2) M.maxOther = Math.max(M.maxOther, high);
+    if (low > -80 && at >= hz(25) && at <= hz(35) && high < low - 30) cand.push(i);
+  }
+  M.hits = cand.length === 1 && M.hitAt === cand[0] ? (M.hits || 0) + 1 : (cand.length === 1 ? 1 : 0);
+  M.hitAt = cand.length === 1 ? cand[0] : null;
+  if (M.hits >= 3){
+    const eng = Object.keys(MC_MAP).find(k => MC_MAP[k][MC_PILOT] === M.hitAt);
+    if (eng){
+      if (eng !== M.engine){ M.engine = eng; M.map = MC_MAP[eng]; routeMulti(); }
+      multiOk(); return;
+    }   // 不在任何一張表裡：順序不明，等時間到改成不分軌
+  }
+  if (M.played >= MC_CHECK_SEC) multiFallback(M.maxOther < -90 ? 'stereo' : 'mono');
+}
+function stopProbes(){ const M = MIX.multi; clearInterval(M.timer); (M.probes || []).forEach(a => { try { M.split.disconnect(a); } catch(e){} }); M.probes = null; }
+function multiOk(){ stopProbes(); MIX.multi.state = 'ok'; showMixDebug(); }
+// 這台裝置沒有把聲道分開（先混成立體聲），或順序和 MC_MAP 不同：放棄分軌，照常播完整的歌
+function multiFallback(kind){
+  const M = MIX.multi; stopProbes();
+  MIX.stems.forEach(st => { try { st.gain.disconnect(); } catch(e){} });
+  try { M.split.disconnect(); } catch(e){}
+  if (kind === 'stereo'){   // 只拿到兩個聲道：就是混好的立體聲
+    const merge = actx.createChannelMerger(2);
+    M.split.connect(merge, 0, 0); M.split.connect(merge, 1, 1); merge.connect(songOut()); M.nodes.push(merge);
+  } else {                  // 有多個聲道但順序不明：全部加起來當單聲道
+    const g = actx.createGain(); g.gain.value = 0.5; g.channelCount = 1; g.channelCountMode = 'explicit';
+    for (let i = 0; i < 8; i++) M.split.connect(g, i);
+    g.connect(songOut()); M.nodes.push(g);
+  }
+  M.state = kind; MIX.stems = []; $('mxRows').innerHTML = '';
+  $('mixBtn').hidden = true; $('mixer').hidden = true;
+  $('fileHint').textContent = '這台裝置不支援分軌混音，播放的是完整的歌（混音功能先關掉）。';
+  showMixDebug();
 }
 // list: [{key, file}]；主分軌用鼓
 function setupStems(list){
@@ -1243,6 +1373,7 @@ function setupStems(list){
 function wireMix(){
   if (MIX.stems.length < 2) return;
   ensureCtx(); if (!actx) return;
+  if (MIX.multi){ wireMulti(); applyGains(); return; }
   MIX.stems.forEach(st => {
     if (st.el === audio){
       if (!audio._src){ audio._src = actx.createMediaElementSource(audio); audio._gain = actx.createGain(); audio._src.connect(audio._gain).connect(songOut()); }
@@ -1366,7 +1497,9 @@ try {
 } catch(e){}
 function showMixDebug(){
   const el = $('mxDebug'); el.hidden = !mixDebug;
-  if (mixDebug) el.textContent = '同步　' + (followers().map(st => `${st.label}：跳轉 ${st.seeks}・差 ${Math.round((st.err || 0) * 1000)}ms・速度 ${st.nudge > 0 ? '+' : ''}${((st.nudge || 0) * 100).toFixed(2)}%・提前 ${Math.round((st.lead || 0) * 1000)}ms`).join('｜') || '沒有跟隨軌');
+  const M = MIX.multi;
+  if (mixDebug && M) el.textContent = `多聲道（${M.engine}${M.engine !== MC_ENGINE ? '，原本猜 ' + MC_ENGINE : ''}）：` + ({idle: '還沒播放', checking: '檢查中…', ok: '聲道分開 ✓', stereo: '裝置只給立體聲，已改成不分軌', mono: '聲道順序不明，已改成不分軌'}[M.state] || M.state);
+  else if (mixDebug) el.textContent = '同步　' + (followers().map(st => `${st.label}：跳轉 ${st.seeks}・差 ${Math.round((st.err || 0) * 1000)}ms・速度 ${st.nudge > 0 ? '+' : ''}${((st.nudge || 0) * 100).toFixed(2)}%・提前 ${Math.round((st.lead || 0) * 1000)}ms`).join('｜') || '沒有跟隨軌');
 }
 let dbgTaps = [];
 document.querySelector('#mixer .mxhead b').addEventListener('click', () => {
