@@ -1138,6 +1138,7 @@ $('tgOne').onclick = () => { $('clickOne').checked = !$('clickOne').checked; upd
 function setSongMuted(on){
   audio.muted = on;
   if (typeof MIX !== 'undefined') MIX.stems.forEach(st => { if (st.el !== audio) st.el.muted = on; });
+  applySongVol();   // 接上 Web Audio 以後 iOS 不理會 muted（分軌一定有接），所以總音量也要歸零
   if (on && !$('click').checked){ $('click').checked = true; $('click').dispatchEvent(new Event('change')); }
   updateTempoUI();
 }
@@ -1155,10 +1156,11 @@ window.__cbSong = {get gain(){ return songBus ? songBus.gain.value : null; }, ge
 try { const v = localStorage.getItem('cb-song-vol'); if (v !== null) $('songVol').value = v; } catch(e){}
 $('songVolPc').textContent = pctText(songVol());
 function songOut(){
-  if (!songBus){ songBus = actx.createGain(); songBus.gain.value = songVol() * songVol(); songBus.connect(actx.destination); }
+  if (!songBus){ songBus = actx.createGain(); songBus.gain.value = songGain(); songBus.connect(actx.destination); }
   return songBus;
 }
-function applySongVol(){ if (songBus && actx) songBus.gain.setTargetAtTime(songVol() * songVol(), actx.currentTime, 0.02); }  // 平方：比較符合耳朵的感覺
+const songGain = () => audio.muted ? 0 : songVol() * songVol();   // 平方：比較符合耳朵的感覺；靜音時歸零
+function applySongVol(){ if (songBus && actx) songBus.gain.setTargetAtTime(songGain(), actx.currentTime, 0.02); }
 function wireSong(){
   if (typeof MIX !== 'undefined' && MIX.stems.length > 1) return wireMix();   // 分軌：混音器會接到 songOut()
   if (!audio._src && songVol() >= 0.999) return;
@@ -1232,7 +1234,7 @@ function setupStems(list){
     }
     const sv = saved[st.key] || {};
     return {key: st.key, label: STEM_LABEL[st.key] || st.key, el, vol: sv.vol ?? 1, mute: !!sv.mute, solo: !!sv.solo, src: null, gain: null,
-            errs: [], err: 0, nudge: 0, settle: 0, seeks: 0};  // 同步狀態，見 driftCheck
+            errs: [], err: 0, nudge: 0, settle: 0, seeks: 0, lead: savedLead(), calib: null};  // 同步狀態，見 driftCheck
   });
   $('mixBtn').hidden = MIX.stems.length < 2;
   renderMixer(); showMixDebug();
@@ -1296,6 +1298,8 @@ $('mixBtn').onclick = () => { const h = !$('mixer').hidden; $('mixer').hidden = 
 // iPad 的 currentTime 讀數本身會跳動幾十 ms。v1.3 以前每 0.3 秒只要差超過 25ms 就跳轉，
 // 結果跟隨軌一秒被拉三次、人聲斷斷續續。現在改成：看最近幾次誤差的中位數，
 // 小誤差用 playbackRate 微調慢慢追（不會斷音），大誤差才跳轉。
+// iPad 上跳轉時那一軌會停大約半秒（鼓照樣往前），跳完反而落後半秒，又再跳……
+// 所以每一軌會學「跳轉要提前多少」（st.lead）：跳完量一下還差多少，下次多跳那麼多。
 const SYNC_EVERY = 300;       // ms：檢查間隔
 const SYNC_SAMPLES = 5;       // 取最近幾次誤差的中位數（至少 3 次才判斷）
 const SYNC_DEAD = 0.035;      // 秒：中位數在這以內不處理
@@ -1305,15 +1309,27 @@ const SYNC_GAIN = 0.2;        // 微調比例：差 0.1 秒 → 速度差 2%
 const SYNC_MAX_NUDGE = 0.02;  // 速度最多差 ±2%
 const SYNC_STEP = 0.0025;     // 微調以 0.25% 為一格，避免一直改 playbackRate
 const SYNC_SETTLE = 800;      // ms：跳轉、改速度後先不量（剛跳完的讀數不準）
+const SYNC_LEAD0 = 0.01;      // 秒：還沒學到之前的提前量
+const SYNC_MAX_LEAD = 1.5;    // 秒：提前量上限
+const LEAD_KEY = 'cb-sync-lead';  // 學到的提前量存起來，下次開 App 直接用（所有歌共用）
+function savedLead(){ try { const v = parseFloat(localStorage.getItem(LEAD_KEY)); return isFinite(v) ? Math.max(0, Math.min(SYNC_MAX_LEAD, v)) : SYNC_LEAD0; } catch(e){ return SYNC_LEAD0; } }
 const followers = () => MIX.stems.filter(st => st.el !== audio);
 const median = a => { const s = a.slice().sort((x, y) => x - y), n = s.length; return n % 2 ? s[n >> 1] : (s[n / 2 - 1] + s[n / 2]) / 2; };
 function resetSync(st){
   st.errs = []; st.nudge = 0; st.settle = performance.now() + SYNC_SETTLE;
   st.el.playbackRate = audio.playbackRate;
 }
-// 立刻對齊：播放、跳轉時用（這些時候本來就會停一下），以及誤差太大時
-function hardSync(st, lead){
-  try { if (Math.abs(st.el.currentTime - audio.currentTime) > 0.025) st.el.currentTime = audio.currentTime + (lead || 0); } catch(e){}
+// 立刻對齊：播放、跳轉時用（這些時候本來就會停一下），以及誤差太大時。
+// 主分軌在播放時要提前 st.lead（跳轉期間主分軌還在走）；暫停時不用
+function hardSync(st){
+  st.calib = null;
+  try {
+    if (Math.abs(st.el.currentTime - audio.currentTime) > 0.025){
+      const lead = audio.paused ? 0 : st.lead;
+      st.el.currentTime = audio.currentTime + lead;
+      if (!audio.paused) st.calib = lead;   // 之後量到的誤差拿來修正提前量
+    }
+  } catch(e){}
   resetSync(st);
 }
 // 播放中定期檢查（e > 0 表示跟隨軌超前）
@@ -1324,7 +1340,14 @@ function driftCheck(st){
   if (st.errs.length > SYNC_SAMPLES) st.errs.shift();
   if (st.errs.length < 3) return;
   const e = median(st.errs); st.err = e;
-  if (Math.abs(e) > SYNC_HARD){ st.seeks++; hardSync(st, 0.01); return; }
+  if (st.calib !== null){   // 剛跳轉完：理想的提前量＝這次用的－這次還差的
+    if (Math.abs(e) > SYNC_DEAD){
+      st.lead = Math.max(0, Math.min(SYNC_MAX_LEAD, st.calib - e));
+      try { localStorage.setItem(LEAD_KEY, st.lead.toFixed(3)); } catch(e2){}
+    }
+    st.calib = null;
+  }
+  if (Math.abs(e) > SYNC_HARD){ st.seeks++; hardSync(st); return; }
   let nudge;
   if (st.nudge) nudge = (Math.abs(e) < SYNC_DONE || Math.sign(e) === Math.sign(st.nudge)) ? 0 : -e * SYNC_GAIN;
   else nudge = Math.abs(e) > SYNC_DEAD ? -e * SYNC_GAIN : 0;
@@ -1343,7 +1366,7 @@ try {
 } catch(e){}
 function showMixDebug(){
   const el = $('mxDebug'); el.hidden = !mixDebug;
-  if (mixDebug) el.textContent = '同步　' + (followers().map(st => `${st.label}：跳轉 ${st.seeks}・差 ${Math.round((st.err || 0) * 1000)}ms・速度 ${st.nudge > 0 ? '+' : ''}${((st.nudge || 0) * 100).toFixed(2)}%`).join('｜') || '沒有跟隨軌');
+  if (mixDebug) el.textContent = '同步　' + (followers().map(st => `${st.label}：跳轉 ${st.seeks}・差 ${Math.round((st.err || 0) * 1000)}ms・速度 ${st.nudge > 0 ? '+' : ''}${((st.nudge || 0) * 100).toFixed(2)}%・提前 ${Math.round((st.lead || 0) * 1000)}ms`).join('｜') || '沒有跟隨軌');
 }
 let dbgTaps = [];
 document.querySelector('#mixer .mxhead b').addEventListener('click', () => {
