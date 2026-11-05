@@ -267,8 +267,11 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .scorehead h2,.maphead h2{font-size:26px}
 .scoretools{display:inline-flex;align-items:center;gap:8px 14px;flex-wrap:wrap;justify-content:flex-end}
 .widthctl{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);min-height:36px}
-.widthctl input{width:140px;accent-color:var(--brass)}
-.widthctl span{min-width:4.2em;font-size:12px;color:var(--ink)}
+.wbtns{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.wbtns button{border:0;background:var(--card);color:var(--ink);min-width:52px;min-height:36px;padding:0 10px;font-size:13px;font-weight:700;touch-action:manipulation}
+.wbtns button+button{border-left:1px solid var(--rule)}
+.wbtns button[aria-pressed=true]{background:var(--ink);color:var(--card)}
+.wbtns button:disabled{opacity:.4}
 @media (max-width:719px){.widthctl{display:none}}  /* 手機螢幕本來就比 680 窄，調了也沒差 */
 .zoombtns{display:inline-flex;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
 .zoombtns button{border:0;background:var(--card);min-width:44px;min-height:36px;font-weight:700}
@@ -451,7 +454,7 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
     <div class="scorehead">
       <h2>鼓譜</h2>
       <span class="scoretools">
-        <label class="widthctl">版面寬度 <input type="range" id="pageWidth" min="680" max="1400" step="20" value="680" aria-label="版面寬度"><span class="mono" id="pageWidthLab">標準</span></label>
+        <span class="widthctl">版面寬度 <span class="wbtns" id="pageWidth" role="group" aria-label="版面寬度"><button data-w="680" aria-pressed="true">標準</button><button data-w="1000" aria-pressed="false">1000px</button><button data-w="full" aria-pressed="false">滿版</button></span></span>
         <span class="zoombtns" role="group" aria-label="譜的大小"><button id="zoomOut" aria-label="譜縮小">A−</button><button id="zoomIn" aria-label="譜放大">A＋</button></span>
       </span>
     </div>
@@ -489,10 +492,11 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
       </div>
       <div class="row">
         <button class="main" id="copyJson">複製 song.json</button>
+        <button id="dlJson">下載 song.json</button>
         <button id="revert">還原</button>
         <span class="toast" id="editToast" style="min-height:0"></span>
       </div>
-      <p>修正會自動存在這台裝置的 App 裡。重新匯入同一首歌（例如電腦重新分析後的新版）時，修正仍然保留，可以按「改用匯入時的版本」放棄修正。要把修正帶回電腦：按「複製 song.json」，貼回電腦上的 song.json。</p>
+      <p>修正會自動存在這台裝置的 App 裡。重新匯入同一首歌（例如電腦重新分析後的新版）時，修正仍然保留，可以按「改用匯入時的版本」放棄修正。要把修正帶回電腦：按「下載 song.json」或「複製 song.json」，取代電腦上的 song.json。</p>
       <textarea id="jsonOut" hidden readonly aria-label="song.json 內容"></textarea>
     </div>
     <div class="map" id="map"></div>
@@ -540,7 +544,7 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
         </div>
         <label class="mvol"><span>歌曲音量</span><input type="range" id="songVol" min="0" max="1" step="0.05" value="1" aria-label="歌曲音量"><output class="mono" id="songVolPc">100%</output></label>
       </div>
-      <p class="mnote">歌曲靜音＋節拍器＝只聽節拍器，鼓譜和計數器照樣跟著走，可以用任何速度練。</p>
+      <p class="mnote">節拍器打開就會一直響：歌曲暫停時照上面的速度自己響，播放時自動對齊歌曲。歌曲靜音＋節拍器＝只聽節拍器，鼓譜和計數器照樣跟著走。</p>
     </div>
     <div class="mixer" id="mixer" hidden>
       <div class="mxhead"><b>分軌混音</b>
@@ -867,6 +871,13 @@ $('copyJson').onclick = () => {
   const show = () => { const ta = $('jsonOut'); ta.hidden = false; ta.value = txt; ta.focus(); ta.select(); $('editToast').textContent = '自動複製被擋住了，內容已全選，請按 Ctrl+C／⌘C'; };
   try { navigator.clipboard.writeText(txt).then(() => { $('editToast').textContent = '已複製，貼進 song.json 存檔'; }, show); } catch(e){ show(); }
 };
+// 下載成檔案：手機上比剪貼簿好搬，檔名固定 song.json，直接取代練習資料夾裡的那份
+$('dlJson').onclick = () => {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(Object.assign({}, SONG, {edited: true}), null, 1)], {type: 'application/json'}));
+  const a = document.createElement('a'); a.href = url; a.download = 'song.json';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+  $('editToast').textContent = '已下載 song.json，用它取代練習資料夾裡的 song.json';
+};
 $('revert').onclick = () => {
   if (!ORIG) return; try { localStorage.removeItem(songKey(ORIG)); } catch(e){}
   setSong(ORIG); $('editToast').textContent = '已還原'; $('notice').hidden = true;
@@ -1181,23 +1192,59 @@ $('songVol').addEventListener('input', () => {
 });
 audio.addEventListener('play', wireSong);
 // 節拍器：用 Web Audio 的時間表提前排好每一拍，比跟著畫面更新觸發準
+// v1.6：歌曲播放時對齊歌曲的拍子（beats[]）；沒在播（暫停、還沒開歌）時用自己的時鐘照面板上的 BPM 響
 let metroNext = null;
+let freeMetro = null;     // 自由模式：{next: 下一拍的 actx 時間, idx: 第幾拍（idx % BPB === 0 是重拍）}
+let freeNodes = [];       // 自由模式排好、還沒響的點擊，歌曲開始播放時要取消，不然會和歌曲的拍子疊在一起
+let lastBeat = null;      // 歌曲模式最後排到的一拍 {when, k}，暫停時從它接上自由模式，拍子不會斷
+// 方便除錯、測試：free＝自由模式中；now()＝歌曲時間和 AudioContext 時間；phase(t)＝歌曲時間 t 離最近一拍差幾拍
+window.__cbMetro = {get free(){ return !!freeMetro; }, now: () => ({t: curTime(), a: actx ? actx.currentTime : 0, rate: audio.playbackRate || 1, paused: audio.paused}),
+  phase(t){ const x = beatIdx(t - offset); return x - Math.round(x); }};
 function clickAt(when, accent){
   const o = actx.createOscillator(), g = actx.createGain(), v = metroVol();
   o.frequency.value = accent ? 1600 : 1000;
   g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(Math.max(0.0002, (accent ? .7 : .4) * v), when + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
   o.connect(g).connect(actx.destination); o.start(when); o.stop(when + 0.07);
+  return {when, g};
+}
+function freeStop(){
+  if (!freeMetro) return;
+  const now = actx ? actx.currentTime : 0;
+  freeNodes.forEach(n => { if (n.when > now) try { n.g.disconnect(); } catch(e){} });
+  freeNodes = []; freeMetro = null;
+  if (audio.paused) holdScreen(false);
+}
+function freeSchedule(){
+  const now = actx.currentTime, gap = 60 / curBpm();
+  if (!freeMetro){
+    // 剛暫停：從歌曲的下一拍接下去（小節裡第幾拍也接得上）；否則馬上從重拍開始
+    if (lastBeat && lastBeat.when > now - gap) freeMetro = {next: lastBeat.when + gap, idx: lastBeat.k + 1};
+    else freeMetro = {next: now + 0.05, idx: 0};
+    lastBeat = null; holdScreen(true);
+  }
+  if (freeMetro.next < now - 0.05) freeMetro.next = now + 0.05;   // 畫面暫停更新過（切到背景）：從現在接著響
+  freeNodes = freeNodes.filter(n => n.when > now);
+  for (let g = 0; g < 8 && freeMetro.next - now < 0.15; g++){
+    const inBar = ((freeMetro.idx % BPB) + BPB) % BPB;
+    if (inBar === 0 || !$('clickOne').checked) freeNodes.push(clickAt(freeMetro.next, inBar === 0));
+    freeMetro.idx++; freeMetro.next += gap;
+  }
+}
+function metroTick(){
+  if (!$('click').checked || mode !== 'follow' || !actx){ metroNext = null; lastBeat = null; freeStop(); return; }
+  if (SONG && loaded && !audio.paused && B.length >= 2){ freeStop(); metroSchedule(curTime()); }
+  else { metroNext = null; freeSchedule(); }
 }
 function metroSchedule(t){
-  if (!$('click').checked || audio.paused || mode !== 'follow' || !actx || B.length < 2){ metroNext = null; return; }
   const rate = audio.playbackRate || 1, cur = beatIdx(t - offset), first = Math.ceil(cur - 1e-6);
   if (metroNext === null || metroNext < first || metroNext > first + 2) metroNext = first;
   for (let g = 0; g < 8; g++){
     const dt = (beatTime(metroNext) + offset - t) / rate;
     if (dt > 0.15) break;
     if (dt >= -0.02){
-      const k = metroNext - BAR1, bar = Math.floor(k / BPB) + 1, inBar = ((k % BPB) + BPB) % BPB;
-      if (bar >= 0 && bar <= LAST && (inBar === 0 || !$('clickOne').checked)) clickAt(actx.currentTime + Math.max(0, dt), inBar === 0);
+      const k = metroNext - BAR1, bar = Math.floor(k / BPB) + 1, inBar = ((k % BPB) + BPB) % BPB, when = actx.currentTime + Math.max(0, dt);
+      if (bar >= 0 && bar <= LAST && (inBar === 0 || !$('clickOne').checked)) clickAt(when, inBar === 0);
+      lastBeat = {when, k};
     }
     metroNext++;
   }
@@ -1520,17 +1567,22 @@ audio.addEventListener('seeked', () => followers().forEach(st => hardSync(st)));
 audio.addEventListener('ratechange', () => followers().forEach(resetSync));
 audio.addEventListener('ended', () => followers().forEach(st => st.el.pause()));
 
-let wake = null;
-async function holdScreen(on){
-  try {
-    if (on && !wake && navigator.wakeLock){ wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
-    if (!on && wake){ await wake.release(); wake = null; }
-  } catch(e){ wake = null; }
+let wake = null, wakeQ = Promise.resolve();
+// 依序執行：暫停後節拍器馬上接著響時，「放開」和「再要一次」會連著呼叫，不排隊的話「再要」會被還沒放完的舊鎖擋掉
+function holdScreen(on){
+  wakeQ = wakeQ.then(async () => {
+    try {
+      if (on && !wake && navigator.wakeLock){ wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); }
+      if (!on && wake){ await wake.release(); wake = null; }
+    } catch(e){ wake = null; }
+  });
+  return wakeQ;
 }
 if (PHONE){  // 手機系：播放時保持螢幕亮著
   audio.onplay = () => { setPlayIcon(); holdScreen(true); };
-  audio.onpause = () => { setPlayIcon(); holdScreen(false); };
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !audio.paused) holdScreen(true); });
+  const metroFree = () => typeof freeMetro !== 'undefined' && !!freeMetro;   // 節拍器自己在響時也要保持螢幕亮著
+  audio.onpause = () => { setPlayIcon(); holdScreen(metroFree()); };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!audio.paused || metroFree())) holdScreen(true); });
 } else audio.onplay = audio.onpause = setPlayIcon;
 audio.onended = () => { setPlayIcon(); if (quiz && quiz.running) finishQuiz(); };
 $('seek').addEventListener('input', e => seekTo(+e.target.value));
@@ -1571,11 +1623,11 @@ function tick(force){
     else { const s = secOf(bar); $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = s ? `段落：<b>${esc(secLabel(s))}</b> · 這段第 ${bar - s.from + 1}/${s.to - s.from + 1} 小節` : '段落：<b>—</b>'; }
     if (nowBar !== bar){ if (barEls[nowBar]) barEls[nowBar].classList.remove('now'); if (!hide && barEls[bar]) barEls[bar].classList.add('now'); nowBar = bar; }
   }
-  if (PHONE) metroSchedule(t);  // 手機系用 Web Audio 排程；桌機版在上面每拍即時響
   if (quiz && quiz.running) quizTick(t);
   if (score.ready && !$('scoreWrap').hidden) syncScore(t);
 }
-(function loopRAF(){ tick(false); requestAnimationFrame(loopRAF); })();
+// 手機系的節拍器用 Web Audio 排程（metroTick），沒開歌也要跑；桌機版在 tick 裡每拍即時響
+(function loopRAF(){ tick(false); if (PHONE) metroTick(); requestAnimationFrame(loopRAF); })();
 
 /* ---------- modes + views ---------- */
 const MODES = {follow:'m-follow', sec:'m-sec', phrase:'m-phrase'};
@@ -1835,12 +1887,26 @@ function cursorRect(){
   const r = el.getBoundingClientRect(), h = 4 * score.osmd.zoom * 10;
   return {top: r.top, bottom: r.top + h, height: h};
 }
+// 每一行五線譜在畫面上的位置（px）：每小節的 y 是那一行五線譜的頂端，依 y 分行
+function staffLines(){
+  const layer = cursorLayer(); if (!layer) return [];
+  const z = score.osmd.zoom * 10, y0 = layer.getBoundingClientRect().top, n = score.osmd.Sheet.SourceMeasures.length, ys = [];
+  for (let i = 0; i < n; i++){ const m = gm(i); if (!m) continue; const y = m.PositionAndShape.AbsolutePosition.y; if (!ys.some(v => Math.abs(v - y) < 1)) ys.push(y); }
+  return ys.sort((a, b) => a - b).map(y => ({top: y0 + y*z, bottom: y0 + (y + 4)*z}));
+}
+const lineOf = (L, y) => L.reduce((best, l, i) => Math.abs(l.top - y) < Math.abs(L[best].top - y) ? i : best, 0);
+// 一行要完整看到的上緣：五線譜上方還有段落色條、名稱、時間、高過譜線的鈸。
+// v1.6 以前只對齊游標圖片上緣（＝五線譜頂端）往上 8px，這些都會被切掉。改成對齊上一行五線譜的底端，中間的東西全部看得到
+function lineShowTop(L, i){
+  return i > 0 ? L[i - 1].bottom + 4 : L[i].top - (5.4 * score.osmd.zoom * 10 + 30);
+}
 function scrollCursorTo(where, smooth){
   const r = cursorRect(); if (!r) return;
   const {top, bottom} = scoreViewBand(); let dy = 0;
+  const showTop = () => { const L = staffLines(); return L.length ? lineShowTop(L, lineOf(L, r.top)) : r.top - 8; };
   if (where === 'center') dy = (r.top + r.height/2) - (top + (bottom - top) * 0.42);   // 稍微偏上，下面多留幾行可以往前看
-  else if (where === 'top') dy = r.top - top - 8;
-  else if (r.top < top) dy = r.top - top - 8;
+  else if (where === 'top') dy = showTop() - top;
+  else if (r.top < top) dy = showTop() - top;
   else if (r.bottom > bottom) dy = r.bottom - bottom + 8;
   // 捲到絕對位置：同一個畫面更新內重複呼叫也不會疊加（iOS 連續兩次平滑 scrollBy 可能會累加）
   if (Math.abs(dy) > 2) window.scrollTo({top: window.scrollY + dy, behavior: smooth && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' : 'auto'});
@@ -1851,7 +1917,7 @@ const afterLayout = fn => requestAnimationFrame(() => requestAnimationFrame(fn))
 let scrollReq = null;
 function requestScroll(where){
   const pending = scrollReq !== null; scrollReq = where;
-  if (!pending) afterLayout(() => { const w = scrollReq; scrollReq = null; if (w) scrollCursorTo(w, true); });
+  if (!pending) afterLayout(() => { const w = scrollReq; scrollReq = null; if (w === 'page'){ if (pageFlipDue()) scrollCursorTo('top', true); } else if (w) scrollCursorTo(w, true); });
 }
 function followScroll(){
   if (!PHONE) return followScrollDesktop();
@@ -1860,8 +1926,17 @@ function followScroll(){
   if (el.style.top === score.lastTop) return;   // 只在換行時捲動
   score.lastTop = el.style.top;
   if (fm === 'center') requestScroll('center');
-  else { const r = cursorRect(); if (!r) return; const {top, bottom} = scoreViewBand(); if (r.top < top || r.bottom > bottom) scrollCursorTo('top', true); }
+  else requestScroll('page');
 }
+// 翻頁（v1.6）：游標到了可視區的倒數第二行就翻，讓這一行移到最上面，下面幾行可以先看。
+// 判斷方式：再下一行（目前＋2）已經沒有完整落在可視區裡。快到譜尾、沒有＋2 時看最後一行。游標那行跑出畫面（例如跳轉後）也翻
+function pageFlipDue(){
+  const r = cursorRect(); if (!r) return false;
+  const L = staffLines(); if (!L.length) return false;
+  const {top, bottom} = scoreViewBand(), c = lineOf(L, r.top), ahead = L[Math.min(c + 2, L.length - 1)];
+  return r.top < top || r.bottom > bottom || ahead.bottom > bottom;
+}
+window.__cbScore = {lines: staffLines, cursor: cursorRect, band: scoreViewBand, showTop: (L, i) => lineShowTop(L, i)};   // 方便除錯、測試
 // 桌機版：「播放時自動捲動」打勾時，游標超出畫面才捲
 function followScrollDesktop(){
   if (!$('follow').checked || audio.paused) return;
@@ -1903,28 +1978,37 @@ function rerenderIfResized(){
   if (Math.abs(w - score.width) > 8){ if ($('scoreWrap').hidden || !w) score.needsRender = true; else renderScore(); }
 }
 let rsT; window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(() => { if (PHONE) updatePageWidthUI(); rerenderIfResized(); }, 250); });
-// 版面寬度（手機系）：平板比較寬，可以把內容拉寬，鼓譜一行放得下更多小節。滑到最右邊＝滿版
-const WIDTH_MIN = 680;
-function pageWidthMax(){ return Math.max(WIDTH_MIN + 20, Math.ceil(window.innerWidth / 20) * 20); }
+// 版面寬度（手機系）：平板比較寬，可以把內容拉寬，鼓譜一行放得下更多小節
+// v1.6：滑桿改成三個按鈕（標準 680、1000px、滿版）。拖滑桿時每一格都要重排整頁，iPad 上不順
+const WIDTH_MIN = 680, WIDTH_OPTS = [680, 1000, 'full'];
+// 舊版滑桿存的任意寬度，換成最接近的選項
+function snapWidth(v){
+  if (v === 'full') return 'full';
+  v = +v || WIDTH_MIN;
+  return v >= 1200 ? 'full' : v >= 840 ? 1000 : WIDTH_MIN;
+}
+pageWidth = snapWidth(pageWidth);
 function applyPageWidth(){
-  const full = pageWidth === 'full' || +pageWidth >= pageWidthMax();
-  document.documentElement.style.setProperty('--wrap-max', full ? 'none' : Math.max(WIDTH_MIN, +pageWidth || WIDTH_MIN) + 'px');
+  const full = pageWidth === 'full' || +pageWidth >= window.innerWidth;
+  document.documentElement.style.setProperty('--wrap-max', full ? 'none' : pageWidth + 'px');
 }
 function updatePageWidthUI(){
-  const r = $('pageWidth'), mx = pageWidthMax(); r.min = WIDTH_MIN; r.max = mx;
-  const full = pageWidth === 'full' || +pageWidth >= mx;
-  r.value = full ? mx : Math.max(WIDTH_MIN, +pageWidth || WIDTH_MIN);
-  $('pageWidthLab').textContent = full ? '滿版' : +r.value <= WIDTH_MIN ? '標準' : r.value + 'px';
+  const shown = pageWidth === 1000 && window.innerWidth <= 1000 ? 'full' : pageWidth;   // 實際看起來是哪一種
+  document.querySelectorAll('#pageWidth [data-w]').forEach(b => {
+    const w = b.dataset.w === 'full' ? 'full' : +b.dataset.w;
+    b.setAttribute('aria-pressed', w === shown);
+    b.disabled = w === 1000 && window.innerWidth <= 1000;   // 螢幕比 1000 窄（iPad 直放）時，1000px 和滿版一樣
+  });
   applyPageWidth();
 }
 if (PHONE){
   updatePageWidthUI();
-  let pwT;
-  $('pageWidth').addEventListener('input', e => {
-    const v = +e.target.value; pageWidth = v >= +e.target.max ? 'full' : v;
+  $('pageWidth').addEventListener('click', e => {
+    const b = e.target.closest('[data-w]'); if (!b || b.disabled) return;
+    pageWidth = b.dataset.w === 'full' ? 'full' : +b.dataset.w;
     try { localStorage.setItem('cb-width', pageWidth); } catch(_){}
     updatePageWidthUI();
-    clearTimeout(pwT); pwT = setTimeout(rerenderIfResized, 300);   // 拖動時只改版面，停下來才重畫鼓譜
+    afterLayout(rerenderIfResized);   // 等版面套用新寬度再重畫鼓譜
   });
 }
 $('secMarks').onchange = () => { if (score.ready) drawSectionMarks(); };

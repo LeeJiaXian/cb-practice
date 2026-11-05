@@ -1,5 +1,5 @@
 // 數小節練習室：離線快取。改版時把 VERSION 加一，使用者下次連網打開就會更新。
-const VERSION = 'cb-v7';
+const VERSION = 'cb-v8';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const LIBS = [
   'https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.9.9/build/opensheetmusicdisplay.min.js',
