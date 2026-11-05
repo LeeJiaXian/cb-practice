@@ -328,6 +328,7 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .metro .mvol{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);min-width:0}
 .metro .mvol span{white-space:nowrap}
 .metro .mvol input{flex:1;min-width:60px;accent-color:var(--mc)}
+.metro .mdiag{font-size:11px;line-height:1.5;color:var(--muted);background:var(--paper);border:1px dashed var(--rule);border-radius:6px;padding:6px 8px;margin:0;word-break:break-all}
 .metro .mvol output{min-width:3.2em;text-align:right;font-size:12px;color:var(--ink)}
 @media (max-width:520px){.metro .mgroup{grid-template-columns:auto 1fr}.metro .mvol{grid-column:1/-1}}
 .metro .mnote{font-size:12px;color:var(--muted);margin:0}
@@ -532,7 +533,7 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
       <div class="mgroup mg-click">
         <div class="mglab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5zM11.2 5 8 19h8l-1.1-5H12l-.8-3.4L15 6.4 14.6 5z"/></svg>節拍器</div>
         <div class="mtoggles">
-          <button class="tg" id="tgClick" aria-pressed="false" aria-label="節拍器開關">開啟</button>
+          <button class="tg" id="tgClick" aria-pressed="false" aria-label="節拍器開始或停止">▶ 開始</button>
           <button class="tg" id="tgOne" aria-pressed="false">只響第 1 拍</button>
         </div>
         <label class="mvol"><span>節拍器音量</span><input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"><output class="mono" id="metroVolPc">80%</output></label>
@@ -544,7 +545,8 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
         </div>
         <label class="mvol"><span>歌曲音量</span><input type="range" id="songVol" min="0" max="1" step="0.05" value="1" aria-label="歌曲音量"><output class="mono" id="songVolPc">100%</output></label>
       </div>
-      <p class="mnote">節拍器打開就會一直響：歌曲暫停時照上面的速度自己響，播放時自動對齊歌曲。歌曲靜音＋節拍器＝只聽節拍器，鼓譜和計數器照樣跟著走。</p>
+      <p class="mnote">節拍器有自己的開始／停止，歌曲播放、暫停都不影響：歌曲沒在播時照上面的速度響，播放時自動對齊歌曲的拍子。歌曲靜音＋節拍器＝只聽節拍器，鼓譜和計數器照樣跟著走。</p>
+      <p class="mnote mdiag mono" id="audioDiag" hidden></p>
     </div>
     <div class="mixer" id="mixer" hidden>
       <div class="mxhead"><b>分軌混音</b>
@@ -1118,7 +1120,7 @@ function seekTo(t, play){
   if (!PHONE) audio.currentTime = t;
   // 手機系：還沒讀到 metadata（iOS 不預載）時先記在 pendingSeek，讀到再跳
   else if (audio.readyState < 1){ pendingSeek = t; } else { try { audio.currentTime = t; } catch(e){ pendingSeek = t; } }
-  lastBeatKey = null; if (PHONE) metroNext = null;
+  lastBeatKey = null; if (PHONE) metroResync();
   if (play){ ensureCtx(); playAudio(); }
   tick(true);
 }
@@ -1142,7 +1144,7 @@ function updateTempoUI(){
   if (document.activeElement !== $('bpmIn')) $('bpmIn').value = curBpm();
   const pct = Math.round((audio.playbackRate || 1) * 100);
   $('bpmNote').textContent = `原曲 ${Math.round(songBpm())} BPM · 目前 ${pct}%` + (!audio.muted && (pct < 50 || pct > 150) ? ' · 速度差很多時歌曲音質會變差，可以開「歌曲靜音」' : '');
-  $('tgClick').setAttribute('aria-pressed', $('click').checked); $('tgOne').setAttribute('aria-pressed', $('clickOne').checked);
+  $('tgClick').setAttribute('aria-pressed', $('click').checked); $('tgClick').textContent = $('click').checked ? '■ 停止' : '▶ 開始'; $('tgOne').setAttribute('aria-pressed', $('clickOne').checked);
   $('tgMute').setAttribute('aria-pressed', !!audio.muted); $('clickBtn').setAttribute('aria-pressed', $('click').checked);
   document.querySelectorAll('#tempoPresets [data-pct]').forEach(b => b.setAttribute('aria-pressed', Math.abs(+b.dataset.pct - (audio.playbackRate || 1)) < 0.005));
 }
@@ -1192,61 +1194,68 @@ $('songVol').addEventListener('input', () => {
 });
 audio.addEventListener('play', wireSong);
 // 節拍器：用 Web Audio 的時間表提前排好每一拍，比跟著畫面更新觸發準
-// v1.6：歌曲播放時對齊歌曲的拍子（beats[]）；沒在播（暫停、還沒開歌）時用自己的時鐘照面板上的 BPM 響
-let metroNext = null;
-let freeMetro = null;     // 自由模式：{next: 下一拍的 actx 時間, idx: 第幾拍（idx % BPB === 0 是重拍）}
-let freeNodes = [];       // 自由模式排好、還沒響的點擊，歌曲開始播放時要取消，不然會和歌曲的拍子疊在一起
-let lastBeat = null;      // 歌曲模式最後排到的一拍 {when, k}，暫停時從它接上自由模式，拍子不會斷
-// 方便除錯、測試：free＝自由模式中；now()＝歌曲時間和 AudioContext 時間；phase(t)＝歌曲時間 t 離最近一拍差幾拍
-window.__cbMetro = {get free(){ return !!freeMetro; }, now: () => ({t: curTime(), a: actx ? actx.currentTime : 0, rate: audio.playbackRate || 1, paused: audio.paused}),
+// v1.7：節拍器有自己的開始／停止，從頭到尾只用一個時鐘（MET）。
+//   歌曲沒在播：照面板上的 BPM 響。歌曲在播：每一拍排之前，把這一拍移到歌曲最接近的那一拍上（鎖相），不切換時鐘。
+//   v1.6 是「沒播歌用自己的時鐘、播歌改用歌曲時間」兩個時鐘，iPad 上切換的瞬間會多一下或斷一下：
+//   按播放後聲音要過一兩百毫秒才出來，這段時間 currentTime 停著不動，照它排的拍子會太早；暫停時換時鐘也會偏
+const MET_LOOK = 0.12;    // 提前排多久（秒）
+const MET_SAMPLES = 15;   // 歌曲時間對 AudioContext 時間的換算，取最近幾次的中位數（iPad 的 currentTime 讀數會跳幾十毫秒）
+const MET = {next: null, idx: 0, last: null, d: [], tRef: null, rate: 1};
+// next：下一拍的 actx 時間；idx：第幾拍（idx % BPB === 0 是重拍）；last：上一個排好的拍子的 actx 時間
+// d：每個畫面量一次 actx.currentTime × rate − 歌曲時間；tRef：重設當下的歌曲時間，歌曲時間開始走了才開始量
+const metroRunning = () => MET.next !== null;
+// 方便除錯、測試：running＝正在響；locked＝正在對齊歌曲；now()＝歌曲時間和 AudioContext 時間；phase(t)＝歌曲時間 t 離最近一拍差幾拍
+window.__cbMetro = {get running(){ return metroRunning(); }, get locked(){ return metroLock() !== null; },
+  now: () => ({t: curTime(), a: actx ? actx.currentTime : 0, rate: audio.playbackRate || 1, paused: audio.paused}),
   phase(t){ const x = beatIdx(t - offset); return x - Math.round(x); }};
 function clickAt(when, accent){
   const o = actx.createOscillator(), g = actx.createGain(), v = metroVol();
   o.frequency.value = accent ? 1600 : 1000;
   g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(Math.max(0.0002, (accent ? .7 : .4) * v), when + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
   o.connect(g).connect(actx.destination); o.start(when); o.stop(when + 0.07);
-  return {when, g};
 }
-function freeStop(){
-  if (!freeMetro) return;
-  const now = actx ? actx.currentTime : 0;
-  freeNodes.forEach(n => { if (n.when > now) try { n.g.disconnect(); } catch(e){} });
-  freeNodes = []; freeMetro = null;
-  if (audio.paused) holdScreen(false);
+// 歌曲跳轉、播放、暫停、改速度時重新量換算
+function metroResync(){ MET.d = []; MET.tRef = curTime(); MET.rate = audio.playbackRate || 1; }
+['play', 'pause', 'seeking', 'seeked', 'ratechange'].forEach(ev => audio.addEventListener(ev, metroResync));
+// 歌曲在播、時間真的在走時，回傳換算值 d（歌曲時間 s 在 actx 時間 (s + d) / rate 響）；否則 null
+function metroLock(){
+  if (!SONG || !loaded || audio.paused || B.length < 2 || MET.d.length < 5) return null;
+  const a = MET.d.slice().sort((x, y) => x - y); return a[a.length >> 1];
 }
-function freeSchedule(){
-  const now = actx.currentTime, gap = 60 / curBpm();
-  if (!freeMetro){
-    // 剛暫停：從歌曲的下一拍接下去（小節裡第幾拍也接得上）；否則馬上從重拍開始
-    if (lastBeat && lastBeat.when > now - gap) freeMetro = {next: lastBeat.when + gap, idx: lastBeat.k + 1};
-    else freeMetro = {next: now + 0.05, idx: 0};
-    lastBeat = null; holdScreen(true);
-  }
-  if (freeMetro.next < now - 0.05) freeMetro.next = now + 0.05;   // 畫面暫停更新過（切到背景）：從現在接著響
-  freeNodes = freeNodes.filter(n => n.when > now);
-  for (let g = 0; g < 8 && freeMetro.next - now < 0.15; g++){
-    const inBar = ((freeMetro.idx % BPB) + BPB) % BPB;
-    if (inBar === 0 || !$('clickOne').checked) freeNodes.push(clickAt(freeMetro.next, inBar === 0));
-    freeMetro.idx++; freeMetro.next += gap;
-  }
+function metroSample(){
+  if (!SONG || !loaded || audio.paused || !actx){ return; }
+  const t = curTime(), rate = audio.playbackRate || 1;
+  if (rate !== MET.rate) metroResync();
+  if (MET.tRef !== null && Math.abs(t - MET.tRef) < 1e-4) return;   // 按下播放後聲音還沒出來：時間停著，不能拿來對齊
+  MET.tRef = null;
+  MET.d.push(actx.currentTime * rate - t); if (MET.d.length > MET_SAMPLES) MET.d.shift();
+}
+function metroStart(){ ensureCtx(); if (!actx || metroRunning()) return; MET.next = actx.currentTime + 0.05; MET.idx = 0; MET.last = null; holdScreen(true); }
+function metroStop(){ if (!metroRunning()) return; MET.next = null; MET.last = null; if (audio.paused) holdScreen(false); }
+// 把還沒排的下一拍移到歌曲的拍子上：和上一拍隔半拍到一拍半（不會疊兩下、不會空一拍），而且還沒過去。
+// 每個畫面都做（不是等到要排的那一刻才做），所以一拿到換算值就能對齊；
+// 符合的那一拍剛好已經過去時，這一拍先照自己的速度響，下一拍再對齊。回傳歌曲的拍長（秒）
+function metroAlign(d, now){
+  const rate = audio.playbackRate || 1, at = k => (beatTime(k) + offset + d) / rate;
+  const k0 = Math.round(beatIdx(MET.next * rate - d - offset)), gap = at(k0 + 1) - at(k0);
+  const lo = Math.max(now + 0.005, MET.last !== null ? MET.last + 0.5 * gap : now), hi = MET.last !== null ? MET.last + 1.5 * gap : Infinity;
+  let best = null;
+  for (let k = k0 - 1; k <= k0 + 1; k++){ const w = at(k); if (w >= lo && w <= hi && (best === null || Math.abs(w - MET.next) < Math.abs(at(best) - MET.next))) best = k; }
+  if (best !== null){ MET.next = at(best); MET.idx = best - BAR1; }
+  return gap;
 }
 function metroTick(){
-  if (!$('click').checked || mode !== 'follow' || !actx){ metroNext = null; lastBeat = null; freeStop(); return; }
-  if (SONG && loaded && !audio.paused && B.length >= 2){ freeStop(); metroSchedule(curTime()); }
-  else { metroNext = null; freeSchedule(); }
-}
-function metroSchedule(t){
-  const rate = audio.playbackRate || 1, cur = beatIdx(t - offset), first = Math.ceil(cur - 1e-6);
-  if (metroNext === null || metroNext < first || metroNext > first + 2) metroNext = first;
-  for (let g = 0; g < 8; g++){
-    const dt = (beatTime(metroNext) + offset - t) / rate;
-    if (dt > 0.15) break;
-    if (dt >= -0.02){
-      const k = metroNext - BAR1, bar = Math.floor(k / BPB) + 1, inBar = ((k % BPB) + BPB) % BPB, when = actx.currentTime + Math.max(0, dt);
-      if (bar >= 0 && bar <= LAST && (inBar === 0 || !$('clickOne').checked)) clickAt(when, inBar === 0);
-      lastBeat = {when, k};
-    }
-    metroNext++;
+  if (!$('click').checked || mode !== 'follow' || !actx){ metroStop(); return; }
+  if (!metroRunning()) metroStart();
+  metroSample();
+  const now = actx.currentTime, d = metroLock();
+  if (MET.next < now - 0.05) MET.next = now + 0.05;   // 畫面暫停更新過（切到背景）：從現在接著響
+  let gap = d !== null ? metroAlign(d, now) : 60 / curBpm();
+  for (let g = 0; g < 8 && MET.next - now < MET_LOOK; g++){
+    const inBar = ((MET.idx % BPB) + BPB) % BPB;
+    if (inBar === 0 || !$('clickOne').checked) clickAt(MET.next, inBar === 0);
+    MET.last = MET.next; MET.idx++; MET.next += gap;
+    if (d !== null) gap = metroAlign(d, now);
   }
 }
 audio.addEventListener('ratechange', updateTempoUI);
@@ -1567,6 +1576,77 @@ audio.addEventListener('seeked', () => followers().forEach(st => hardSync(st)));
 audio.addEventListener('ratechange', () => followers().forEach(resetSync));
 audio.addEventListener('ended', () => followers().forEach(st => st.el.pause()));
 
+/* ---------- 聲音診斷（v1.7，手機系） ---------- */
+// 用來查「播放中音調突然變高」（2026-11-05 使用者 iPad 回報，時間點不固定）。
+// 推測（未驗證）：iPad 的音訊輸出換了取樣率，接在 Web Audio 上的歌曲被用錯的速度播放。
+// 開法：網址加 ?debug（?debug=0 關掉），或連點「節拍器與速度」標題 5 下；記在 cb-debug（和混音面板的除錯顯示共用）。
+// 顯示在節拍器面板底部：AudioContext 狀態與取樣率、歌曲速度與是否保持音高、多聲道引導音的實際頻率（應該是 30Hz），
+// 以及最近發生的事件和當時的歌曲時間。音調變高時截圖。
+let diagOn = false, diagLog = [], diagPilot = null, diagHz = null, diagT = null;
+try {
+  const q = new URLSearchParams(location.search).get('debug');
+  if (q !== null) localStorage.setItem('cb-debug', q === '0' ? '' : '1');
+  diagOn = localStorage.getItem('cb-debug') === '1';
+} catch(e){}
+function diagEvent(name){
+  diagLog.push(mmss(curTime()) + ' ' + name); if (diagLog.length > 10) diagLog.shift();
+  if (diagOn) diagShow();
+}
+['play', 'pause', 'waiting', 'stalled', 'seeking', 'seeked', 'ratechange', 'ended', 'error', 'emptied'].forEach(ev => audio.addEventListener(ev, () => diagEvent(ev === 'ratechange' ? `速度 ${(audio.playbackRate || 1).toFixed(2)}` : ev)));
+document.addEventListener('visibilitychange', () => diagEvent(document.visibilityState === 'visible' ? '回到前景' : '切到背景'));
+try { if (navigator.mediaDevices) navigator.mediaDevices.addEventListener('devicechange', () => diagEvent('輸出裝置改變')); } catch(e){}
+// AudioContext 是點擊時才建立的，建立後才掛得上 statechange
+function diagWatchCtx(){
+  if (!actx || actx._diag) return;
+  actx._diag = true; diagEvent(`AudioContext ${actx.state} ${actx.sampleRate}Hz`);
+  actx.addEventListener('statechange', () => diagEvent('AudioContext ' + actx.state));
+}
+// 多聲道的歌：量 LFE 聲道 30Hz 引導音的實際頻率。歌曲被用錯的取樣率播放時，它會跟著偏（例如 48000／44100 → 32.7Hz）
+function diagPilotHz(){
+  const M = typeof MIX !== 'undefined' && MIX.multi;
+  if (!M || !M.split || M.state !== 'ok'){ diagPilot = null; return null; }
+  if (!diagPilot || diagPilot._M !== M){ diagPilot = actx.createAnalyser(); diagPilot._M = M; diagPilot.fftSize = 32768; diagPilot.smoothingTimeConstant = 0.5; M.split.connect(diagPilot, M.map[MC_PILOT]); M.nodes.push(diagPilot); }
+  const n = diagPilot.frequencyBinCount, data = new Float32Array(n), bin = actx.sampleRate / diagPilot.fftSize;
+  diagPilot.getFloatFrequencyData(data);
+  let at = -1, m = -Infinity;
+  for (let b = Math.floor(20 / bin); b <= Math.ceil(45 / bin); b++) if (data[b] > m){ m = data[b]; at = b; }
+  if (at < 1 || m < -110) return null;
+  const a = data[at - 1], c = data[at + 1], off = 0.5 * (a - c) / (a - 2 * m + c || 1);   // 拋物線內插，比一格更準
+  return (at + off) * bin;
+}
+function diagShow(){
+  const el = $('audioDiag'); el.hidden = !diagOn; if (!diagOn) return;
+  diagWatchCtx();
+  const ctx = actx ? `AudioContext：${actx.state}・${actx.sampleRate}Hz` + (actx.baseLatency ? `・延遲 ${Math.round(actx.baseLatency * 1000)}` + (actx.outputLatency ? `＋${Math.round(actx.outputLatency * 1000)}` : '') + 'ms' : '') : 'AudioContext：還沒建立';
+  const pp = audio.preservesPitch ?? audio.webkitPreservesPitch;
+  const song = `歌曲：速度 ${(audio.playbackRate || 1).toFixed(2)}・保持音高 ${pp === undefined ? '?' : pp ? '是' : '否'}・${audio._src ? '接在 Web Audio' : '沒接 Web Audio'}` + (diagHz !== null ? `・引導音 ${diagHz.toFixed(1)}Hz` + (Math.abs(diagHz - 30) > 1 ? ' ⚠️' : '') : '');
+  const met = `節拍器：${metroRunning() ? (metroLock() !== null ? '響著、對齊歌曲' : '響著、自己的速度') : '停止'}`;
+  el.innerHTML = [ctx, song, met, '事件：' + (diagLog.slice().reverse().join('｜') || '—')].map(esc).join('<br>');
+}
+function diagTick(){
+  if (!diagOn) return;
+  if (actx && !audio.paused){
+    const hz = diagPilotHz();
+    if (hz !== null){
+      const was = diagHz; diagHz = hz;
+      if (was !== null && Math.abs(hz - 30) > 1 !== Math.abs(was - 30) > 1) diagEvent(`引導音 ${hz.toFixed(1)}Hz`);   // 偏掉或恢復時記一筆
+    }
+  }
+  if (!$('metroSheet').hidden) diagShow();
+}
+function diagSet(on){
+  diagOn = on; try { localStorage.setItem('cb-debug', on ? '1' : ''); } catch(e){}
+  clearInterval(diagT); if (on) diagT = setInterval(diagTick, 500);
+  diagShow();
+}
+if (diagOn) diagSet(true);
+let diagTaps = [];
+document.querySelector('#metroSheet .mhead b').addEventListener('click', () => {
+  const n = Date.now(); diagTaps = diagTaps.filter(t => n - t < 2000).concat(n);
+  if (diagTaps.length < 5) return;
+  diagTaps = []; diagSet(!diagOn);
+});
+window.__cbDiag = {get on(){ return diagOn; }, get log(){ return diagLog.slice(); }, get pilotHz(){ return diagHz; }};   // 方便除錯、測試
 let wake = null, wakeQ = Promise.resolve();
 // 依序執行：暫停後節拍器馬上接著響時，「放開」和「再要一次」會連著呼叫，不排隊的話「再要」會被還沒放完的舊鎖擋掉
 function holdScreen(on){
@@ -1580,7 +1660,7 @@ function holdScreen(on){
 }
 if (PHONE){  // 手機系：播放時保持螢幕亮著
   audio.onplay = () => { setPlayIcon(); holdScreen(true); };
-  const metroFree = () => typeof freeMetro !== 'undefined' && !!freeMetro;   // 節拍器自己在響時也要保持螢幕亮著
+  const metroFree = () => typeof MET !== 'undefined' && metroRunning();   // 節拍器在響時也要保持螢幕亮著
   audio.onpause = () => { setPlayIcon(); holdScreen(metroFree()); };
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!audio.paused || metroFree())) holdScreen(true); });
 } else audio.onplay = audio.onpause = setPlayIcon;
@@ -1928,12 +2008,13 @@ function followScroll(){
   if (fm === 'center') requestScroll('center');
   else requestScroll('page');
 }
-// 翻頁（v1.6）：游標到了可視區的倒數第二行就翻，讓這一行移到最上面，下面幾行可以先看。
-// 判斷方式：再下一行（目前＋2）已經沒有完整落在可視區裡。快到譜尾、沒有＋2 時看最後一行。游標那行跑出畫面（例如跳轉後）也翻
+// 翻頁：游標到了可視區的倒數第二行就翻，讓這一行移到最上面，下面幾行可以先看。
+// 判斷方式：下一行已經沒有完整落在可視區裡（底部只露出一部分的那行，使用者也算一行）。游標那行跑出畫面（例如跳轉後）也翻。
+// v1.6 用「目前＋2 那行不完整」，iPad 實測早了一行
 function pageFlipDue(){
   const r = cursorRect(); if (!r) return false;
   const L = staffLines(); if (!L.length) return false;
-  const {top, bottom} = scoreViewBand(), c = lineOf(L, r.top), ahead = L[Math.min(c + 2, L.length - 1)];
+  const {top, bottom} = scoreViewBand(), c = lineOf(L, r.top), ahead = L[Math.min(c + 1, L.length - 1)];
   return r.top < top || r.bottom > bottom || ahead.bottom > bottom;
 }
 window.__cbScore = {lines: staffLines, cursor: cursorRect, band: scoreViewBand, showTop: (L, i) => lineShowTop(L, i)};   // 方便除錯、測試
