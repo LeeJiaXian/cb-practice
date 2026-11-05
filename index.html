@@ -1580,9 +1580,10 @@ audio.addEventListener('ended', () => followers().forEach(st => st.el.pause()));
 // 用來查「播放中音調突然變高」（2026-11-05 使用者 iPad 回報，時間點不固定）。
 // 推測（未驗證）：iPad 的音訊輸出換了取樣率，接在 Web Audio 上的歌曲被用錯的速度播放。
 // 開法：網址加 ?debug（?debug=0 關掉），或連點「節拍器與速度」標題 5 下；記在 cb-debug（和混音面板的除錯顯示共用）。
-// 顯示在節拍器面板底部：AudioContext 狀態與取樣率、歌曲速度與是否保持音高、多聲道引導音的實際頻率（應該是 30Hz），
+// 顯示在節拍器面板底部：AudioContext 狀態與取樣率、歌曲速度與是否保持音高、多聲道引導音的實際頻率（應該是 30Hz）、
+// 聲音落後 currentTime 多少（v1.7.1），
 // 以及最近發生的事件和當時的歌曲時間。音調變高時截圖。
-let diagOn = false, diagLog = [], diagPilot = null, diagHz = null, diagT = null;
+let diagOn = false, diagLog = [], diagPilot = null, diagHz = null, diagT = null, diagTicks = 0;
 try {
   const q = new URLSearchParams(location.search).get('debug');
   if (q !== null) localStorage.setItem('cb-debug', q === '0' ? '' : '1');
@@ -1614,18 +1615,89 @@ function diagPilotHz(){
   const a = data[at - 1], c = data[at + 1], off = 0.5 * (a - c) / (a - 2 * m + c || 1);   // 拋物線內插，比一格更準
   return (at + off) * bin;
 }
+// 聲音落後量：用 AudioWorklet 接在鼓那一軌（多聲道）或整首歌（單軌接上 Web Audio 時）後面，記下每 128 個取樣的能量和 actx 時間，
+// 再和歌曲的拍子（beats[]，用 currentTime 換算成 actx 時間）比對：聲音的起音整體往後挪多少最對得上，就是實際聽到的聲音落後 currentTime 多少。
+// 鼓譜、節拍器都跟著 currentTime 走，所以這個值變大＝鼓譜跑在聲音前面（2026-11-05 使用者回報「鼓譜比歌曲快、越來越偏」）
+const LAG = {node: null, src: null, buf: [], d: [], tRef: null, val: null, first: null, ok: false, busy: false};
+const LAG_WIN = 6, LAG_MIN = -0.3, LAG_MAX = 1.5;   // 用最近 6 秒比對；可量的範圍 −300～+1500ms
+const LAG_WORKLET = `registerProcessor('cb-tap', class extends AudioWorkletProcessor {
+  constructor(){ super(); this.e = []; this.t0 = 0; }
+  process(ins){ const ch = ins[0]; if (ch && ch.length){ let s = 0; for (const c of ch) for (let i = 0; i < c.length; i++) s += c[i] * c[i];
+    if (!this.e.length) this.t0 = currentTime; this.e.push(s); if (this.e.length >= 16){ this.port.postMessage({t0: this.t0, e: this.e}); this.e = []; } }
+    return true; } });`;
+function lagReset(){ LAG.buf = []; LAG.d = []; LAG.tRef = curTime(); LAG.val = null; LAG.first = null; }
+['play', 'seeked', 'ratechange'].forEach(ev => audio.addEventListener(ev, lagReset));
+function lagSource(){
+  if (typeof MIX !== 'undefined'){ const dr = MIX.stems.find(st => st.key === 'drums'); if (dr && (dr.merge || dr.src)) return dr.merge || dr.src; }
+  return audio._src || null;
+}
+async function lagWire(){
+  const src = lagSource(); if (!src || !actx || !actx.audioWorklet || LAG.busy) return;
+  if (LAG.src === src && LAG.node) return;
+  LAG.busy = true;
+  try {
+    if (!LAG.node){
+      const url = URL.createObjectURL(new Blob([LAG_WORKLET], {type: 'application/javascript'}));
+      await actx.audioWorklet.addModule(url); URL.revokeObjectURL(url);
+      LAG.node = new AudioWorkletNode(actx, 'cb-tap', {numberOfOutputs: 1});
+      const mute = actx.createGain(); mute.gain.value = 0; LAG.node.connect(mute).connect(actx.destination);   // 要接到輸出才保證會被處理
+      LAG.node.port.onmessage = e => lagData(e.data);
+    }
+    if (LAG.src) try { LAG.src.disconnect(LAG.node); } catch(e){}
+    src.connect(LAG.node); LAG.src = src; lagReset();
+  } catch(e){ LAG.err = (e && e.message) || String(e); }
+  LAG.busy = false;
+}
+function lagData(m){
+  if (audio.paused) return;
+  const n = 128 / actx.sampleRate;
+  m.e.forEach((v, i) => LAG.buf.push([m.t0 + i * n, v]));
+  const cut = actx.currentTime - LAG_WIN - LAG_MAX - 1; while (LAG.buf.length && LAG.buf[0][0] < cut) LAG.buf.shift();
+  // actx 時間 ↔ 歌曲時間的換算（和節拍器同一種做法：時間停著不量，取中位數）
+  const t = curTime(); if (LAG.tRef !== null && Math.abs(t - LAG.tRef) < 1e-4) return; LAG.tRef = null;
+  LAG.d.push(actx.currentTime * (audio.playbackRate || 1) - t); if (LAG.d.length > 40) LAG.d.shift();
+}
+function lagMeasure(){
+  if (audio.paused || LAG.d.length < 10 || !SONG || B.length < 2) return;
+  const rate = audio.playbackRate || 1, dd = LAG.d.slice().sort((x, y) => x - y)[LAG.d.length >> 1];
+  const now = actx.currentTime, buf = LAG.buf.filter(b => b[0] > now - LAG_WIN - LAG_MAX); if (buf.length < 500) return;
+  // 起音強度：這一格的能量比前面 4 格平均大多少（取對數，只留變大的）
+  const T = buf.map(b => b[0]), on = buf.map((b, i) => { if (i < 4) return 0; const prev = (buf[i-1][1] + buf[i-2][1] + buf[i-3][1] + buf[i-4][1]) / 4; return Math.max(0, Math.log((b[1] + 1e-9) / (prev + 1e-9))); });
+  const at = s => (s + dd) / rate;   // 歌曲時間 → 照 currentTime 應該響的 actx 時間
+  // 拍子是週期性的，落後 0、一拍、兩拍都對得上，單看一次分不出來。所以用追蹤的：
+  // 跳轉、播放後第一次只在 ±¼ 拍內找（使用者說重選小節後就對了），之後只在上一次的 ±150ms 內找（漂移是慢慢累積的）
+  const beat = 60 / songBpm();
+  const lo = Math.max(LAG_MIN, LAG.val === null ? -beat / 4 : LAG.val - 0.15), hi = Math.min(LAG_MAX, LAG.val === null ? beat / 4 : LAG.val + 0.15);
+  // 只用「整個搜尋範圍都有資料」的拍子，不然剛開始量時資料不完整，結果會偏
+  const s0 = (Math.max(now - LAG_WIN, T[0] - lo)) * rate - dd, s1 = (Math.min(now, T[T.length - 1]) - hi) * rate - dd;
+  const k0 = Math.ceil(beatIdx(s0 - offset)), k1 = Math.floor(beatIdx(s1 - offset)); if (k1 - k0 < 4) return;
+  const step = 128 / actx.sampleRate, idxOf = x => { let lo = 0, hi = T.length - 1; while (lo < hi){ const mid = (lo + hi) >> 1; if (T[mid] < x) lo = mid + 1; else hi = mid; } return lo; };
+  let best = -1, bestL = 0, sum = 0, cnt = 0;
+  for (let L = lo; L <= hi; L += step){
+    let sc = 0;
+    for (let k = k0; k <= k1; k++){ const i = idxOf(at(beatTime(k) + offset) + L); sc += Math.max(on[i - 1] || 0, on[i] || 0, on[i + 1] || 0); }
+    sum += sc; cnt++; if (sc > best){ best = sc; bestL = L; }
+  }
+  LAG.ok = best > 2 * (sum / cnt);   // 峰值要明顯高過平均，才算量得到
+  if (!LAG.ok) return;
+  const was = LAG.val; LAG.val = bestL; if (LAG.first === null) LAG.first = bestL;
+  if (was !== null && Math.abs(bestL - (LAG.logged ?? LAG.first)) > 0.08){ LAG.logged = bestL; diagEvent(`聲音落後 ${Math.round(bestL * 1000)}ms`); }
+}
 function diagShow(){
   const el = $('audioDiag'); el.hidden = !diagOn; if (!diagOn) return;
   diagWatchCtx();
   const ctx = actx ? `AudioContext：${actx.state}・${actx.sampleRate}Hz` + (actx.baseLatency ? `・延遲 ${Math.round(actx.baseLatency * 1000)}` + (actx.outputLatency ? `＋${Math.round(actx.outputLatency * 1000)}` : '') + 'ms' : '') : 'AudioContext：還沒建立';
   const pp = audio.preservesPitch ?? audio.webkitPreservesPitch;
   const song = `歌曲：速度 ${(audio.playbackRate || 1).toFixed(2)}・保持音高 ${pp === undefined ? '?' : pp ? '是' : '否'}・${audio._src ? '接在 Web Audio' : '沒接 Web Audio'}` + (diagHz !== null ? `・引導音 ${diagHz.toFixed(1)}Hz` + (Math.abs(diagHz - 30) > 1 ? ' ⚠️' : '') : '');
+  const lag = LAG.err ? `聲音落後：量不了（${LAG.err}）` : !lagSource() ? '聲音落後：沒接 Web Audio，不用量' : LAG.val === null ? '聲音落後：量測中…' : `聲音落後：${Math.round(LAG.val * 1000)}ms（跳轉、播放後第一次 ${Math.round(LAG.first * 1000)}ms，差 ${Math.round((LAG.val - LAG.first) * 1000)}ms）` + (Math.abs(LAG.val - LAG.first) > 0.08 ? ' ⚠️' : '') + (LAG.ok ? '' : '・目前對不太上');
   const met = `節拍器：${metroRunning() ? (metroLock() !== null ? '響著、對齊歌曲' : '響著、自己的速度') : '停止'}`;
-  el.innerHTML = [ctx, song, met, '事件：' + (diagLog.slice().reverse().join('｜') || '—')].map(esc).join('<br>');
+  el.innerHTML = [ctx, song, lag, met, '事件：' + (diagLog.slice().reverse().join('｜') || '—')].map(esc).join('<br>');
 }
 function diagTick(){
   if (!diagOn) return;
   if (actx && !audio.paused){
+    lagWire();
+    if ((diagTicks = (diagTicks + 1) % 4) === 0) lagMeasure();   // 每 2 秒量一次
     const hz = diagPilotHz();
     if (hz !== null){
       const was = diagHz; diagHz = hz;
@@ -1646,7 +1718,7 @@ document.querySelector('#metroSheet .mhead b').addEventListener('click', () => {
   if (diagTaps.length < 5) return;
   diagTaps = []; diagSet(!diagOn);
 });
-window.__cbDiag = {get on(){ return diagOn; }, get log(){ return diagLog.slice(); }, get pilotHz(){ return diagHz; }};   // 方便除錯、測試
+window.__cbDiag = {get on(){ return diagOn; }, get log(){ return diagLog.slice(); }, get pilotHz(){ return diagHz; }, get lag(){ return LAG.val; }, get lagOk(){ return LAG.ok; }, get lagErr(){ return LAG.err || null; }};   // 方便除錯、測試
 let wake = null, wakeQ = Promise.resolve();
 // 依序執行：暫停後節拍器馬上接著響時，「放開」和「再要一次」會連著呼叫，不排隊的話「再要」會被還沒放完的舊鎖擋掉
 function holdScreen(on){
