@@ -1,5 +1,5 @@
 // 爵士鼓練習室（原名數小節練習室）：離線快取。改版時把 VERSION 加一，使用者下次連網打開就會更新。
-const VERSION = 'cb-v13';
+const VERSION = 'cb-v14';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const LIBS = [
   'https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.9.9/build/opensheetmusicdisplay.min.js',

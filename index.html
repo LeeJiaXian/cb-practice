@@ -100,21 +100,11 @@ button{cursor:pointer}
 .loader .hint{color:var(--muted);font-size:13.5px;min-width:0;flex:1 1 260px}
 .drop{outline:2px dashed var(--brass);outline-offset:4px}
 
-/* modes */
-.modes{display:flex;gap:0;margin-top:18px;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden;width:fit-content;max-width:100%}
-.modes button{border:0;background:transparent;padding:9px 16px;font-weight:500;white-space:nowrap}
-.modes button[aria-pressed=true]{background:var(--ink);color:var(--card)}
-.modes button+button{border-left:1.5px solid var(--ink)}
-@media (max-width:440px){.modes button{padding:9px 11px;font-size:14px}}
 .panel{margin-top:14px;display:grid;gap:12px}
 .panel p{margin:0;max-width:68ch}
 .opts{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:14px}
 .opts label{display:inline-flex;gap:6px;align-items:center}
 .opts select{padding:4px 6px;border-radius:5px;border:1px solid var(--rule);background:var(--card)}
-.tapzone{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:stretch}
-.tap{border:0;border-radius:10px;background:var(--brass);color:#fff;font-weight:700;font-size:20px;padding:22px 16px;letter-spacing:.04em;transition:transform .05s}
-.tap:active,.tap.hit{transform:scale(.98);filter:brightness(1.12)}
-.tap small{display:block;font-weight:500;font-size:13px;opacity:.85;letter-spacing:0}
 .ghost{border:1.5px solid var(--ink);background:transparent;border-radius:10px;padding:10px 16px;font-weight:500}
 .toast{min-height:26px;font-size:14px}
 .toast span{display:inline-block;padding:2px 10px;border-radius:4px;background:var(--brass-soft)}
@@ -127,20 +117,6 @@ button{cursor:pointer}
 .insight b{font-family:var(--f-display);font-size:26px;font-weight:800;display:block;line-height:1.1}
 .insight span{font-size:13.5px;color:var(--muted)}
 @media (max-width:700px){.insight{grid-template-columns:1fr}}
-
-/* results */
-.results{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px;display:grid;gap:12px}
-.score{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline}
-.score b{font-family:var(--f-display);font-weight:800;font-size:44px;line-height:1}
-.strip{position:relative;height:44px;border-radius:6px;background:var(--paper);overflow:hidden}
-.strip i{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.55}
-.strip u{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;text-decoration:none}
-.legend{font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
-.legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
-.rlist{display:grid;gap:4px;font-size:14px;max-height:320px;overflow:auto}
-.rlist div{display:grid;grid-template-columns:22px 92px 1fr auto;gap:8px;padding:4px 6px;border-radius:4px}
-.rlist div:nth-child(odd){background:var(--paper)}
-.rlist .d{color:var(--muted);font-family:var(--f-mono);font-size:12.5px;white-space:nowrap}
 
 /* map */
 .maphead{margin-top:30px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
@@ -168,7 +144,6 @@ button{cursor:pointer}
 .ovl-time{position:absolute;font:500 10px/1 var(--f-mono);color:#5a6676;pointer-events:none;white-space:nowrap}
 .bar.loop{outline:1.5px dashed var(--brass);outline-offset:-1.5px}
 @media (max-width:700px){.sec{grid-template-columns:1fr}.bar .fl{font-size:10px}}
-.hiddenmap{margin-top:12px;padding:28px 18px;border:1.5px dashed var(--rule);border-radius:10px;color:var(--muted);text-align:center}
 details.adv{font-size:13.5px;color:var(--muted)}
 details.adv summary{cursor:pointer}
 details.adv .row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
@@ -255,16 +230,11 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .insight{margin-top:14px;display:flex!important;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;-webkit-overflow-scrolling:touch}
 .insight div{padding:10px 12px;flex:0 0 82%;scroll-snap-align:start}
 .insight b{font-size:22px}
-.modes{width:100%;margin-top:14px}
-.modes button{flex:1;min-height:44px;padding:8px 6px!important}
 .panel p{font-size:14px}
 .opts{gap:10px 16px}
 .opts label{min-height:36px}
 .opts select,.scoreopts input[type=number]{min-height:34px}
 .viewsw button{min-height:36px;padding:4px 14px}
-.qbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.qbtns .ghost{min-height:44px}
-.qhint{color:var(--muted);font-size:13px!important}
 .scorehead{margin-top:18px;align-items:center}
 .scorehead h2,.maphead h2{font-size:26px}
 .scoretools{display:inline-flex;align-items:center;gap:8px 14px;flex-wrap:wrap;justify-content:flex-end}
@@ -304,8 +274,6 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .dbtn[aria-pressed=true]{color:var(--brass)}
 .dbtn[aria-pressed=true] span{color:var(--brass)}
 .dock .play{width:60px;height:60px}
-.dock-tap .tap{width:100%;min-height:72px;font-size:22px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
-.dock-tap .tap:disabled{opacity:.45}
 .metro{display:grid;gap:8px;padding:8px 2px 6px;border-bottom:1px solid var(--rule);margin-bottom:2px}
 .metro .mhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .metro .mhead b{font-size:15px}
@@ -317,9 +285,13 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .metro .bpmrow>button{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .metro .bpmrow>button.hold{border-color:var(--brass);background:var(--brass-soft)}
 .metro .mbeats{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:2px 0}
-.metro .mbeats span{width:34px;height:34px;border-radius:50%;border:2px solid var(--rule);display:grid;place-items:center;font-family:var(--f-mono);font-size:13px;color:var(--muted);background:var(--card)}
-.metro .mbeats span.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
-.metro .mbeats span.one.on{background:var(--brass);border-color:var(--brass);color:#fff}
+.metro .mbeats button{--d:34px;width:var(--d);height:var(--d);padding:0;border-radius:50%;border:2px solid var(--rule);display:grid;place-items:center;font-family:var(--f-mono);font-size:calc(var(--d) * .38);color:var(--muted);background:var(--card);touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.metro .mbeats button.acc-a{border-color:var(--brass);border-width:3px;color:var(--brass);font-weight:800}
+.metro .mbeats button.acc-m{border-style:dashed;opacity:.5}
+.metro .mbeats button.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.metro .mbeats button.acc-a.on{background:var(--brass);border-color:var(--brass);color:#fff}
+.metro .mbeats button.acc-m.on{background:var(--rule);border-color:var(--muted);color:var(--ink)}
+.metro .mbeats-hint{text-align:center;margin-top:-4px!important}
 .metro .bpmbox{display:flex;align-items:baseline;justify-content:center;gap:6px}
 .metro .bpmbox input{width:3.4em;text-align:center;font-family:var(--f-display);font-weight:800;font-size:34px;border:0;border-bottom:2px solid var(--rule);background:transparent;color:var(--ink);padding:0}
 .metro .bpmbox span{color:var(--muted);font-size:13px}
@@ -375,29 +347,46 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 body.inlib{padding-bottom:24px}
 body.inlib .dock{display:none}
 /* v1.9 首頁的獨立節拍器（跳出視窗）。卡片沿用 .metro 的樣式 */
+/* v1.10：依螢幕短邊（vmin）自動縮放，--ss 是「標準／大／特大」的倍數。
+   --F：BPM 數字；--L：節拍燈；--B：加減按鈕；--t：其他文字。
+   寬度上限用 vw 卡住，確保 4 個按鈕＋數字（4B＋2.6F）、6 個燈在手機上也放得下；高度用 vh 卡住，橫放的「特大」不用捲動 */
 .solobtn svg{width:18px;height:18px;fill:currentColor}
+.libhead>span{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .solo{position:fixed;inset:0;z-index:60;background:rgb(0 0 0 / .45);display:grid;place-items:center;padding:16px;padding-top:max(16px,env(safe-area-inset-top,0px))}
-.metro.solo-card{width:min(460px,100%);max-height:100%;overflow:auto;background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:14px;padding:16px;gap:14px;box-shadow:0 12px 40px rgb(0 0 0 / .3)}
-.solo-card .mhead b{font-size:18px}
+.metro.solo-card{--ss:1;
+  --F:min(calc(11vmin * var(--ss)), 13vw, 14vh, 140px);
+  --L:max(36px, min(calc(8.6vmin * var(--ss)), 11.5vw, 11vh, 120px));
+  --B:max(42px, calc(var(--F) * .72));
+  --t:clamp(14px, calc(2.1vmin * var(--ss)), 26px);
+  width:min(92vw, max(360px, calc(80vmin * var(--ss))));max-width:100%;max-height:100%;overflow:auto;
+  background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:14px;
+  padding:calc(var(--t) * 1.1);gap:calc(var(--t) * .9);font-size:var(--t);box-shadow:0 12px 40px rgb(0 0 0 / .3)}
+.metro.solo-card[data-size=l]{--ss:1.2}
+.metro.solo-card[data-size=xl]{--ss:1.45}
+.solo-card .mhead b{font-size:calc(var(--t) * 1.3)}
+.solo-tools{display:flex;align-items:center;gap:6px}
+.solo-size button{min-height:34px;padding:0 10px;font-size:13px}
 .solo-x{border:0;background:transparent;color:var(--muted);font-size:20px;min-width:44px;min-height:44px;border-radius:8px}
-.solo-card .bpmbox input{font-size:44px}
-.solo-card .mbeats span{width:40px;height:40px;font-size:15px}
+.solo-card .bpmrow>button{min-width:var(--B);min-height:var(--B);font-size:calc(var(--B) * .34)}
+.solo-card .bpmbox{flex-direction:column;align-items:center;gap:0;min-width:0}
+.solo-card .bpmbox input{font-size:var(--F);width:2.6em}
+.solo-card .bpmbox span{font-size:var(--t)}
+.solo-card .mbeats{gap:calc(var(--L) * .2)}
+.solo-card .mbeats button{--d:var(--L)}
+.solo-card .mbeats-hint{font-size:calc(var(--t) * .85)}
 .solo-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.solo-lab{font-size:13px;color:var(--muted)}
-.solo-card .tg.solo-go{min-width:7em;min-height:48px;font-size:16px;font-weight:700}
+.solo-lab{font-size:var(--t);color:var(--muted)}
+.solo-card #soloBpb button{min-height:calc(var(--t) * 2.4);padding:0 calc(var(--t) * .9);font-size:var(--t)}
+.solo-card .tg.solo-go{min-width:7em;min-height:calc(var(--t) * 3.2);font-size:calc(var(--t) * 1.15);font-weight:700}
+.solo-card .mvol{font-size:var(--t)}
+.solo-card .mvol output{font-size:calc(var(--t) * .9)}
 .solo-card .mvol input{accent-color:var(--brass)}
 body.solo-open{overflow:hidden}
-.libhead>span{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.solo-card .bpmbox{flex-direction:column;align-items:center;gap:0;min-width:0}
-.solo-card .bpmbox input{width:2.6em}
 @media (max-width:440px){
   .metro.solo-card{padding:14px 12px}
   .solo-card .bpmrow{gap:4px}
-  .solo-card .bpmrow>button{min-width:42px}
-  .solo-card .bpmbox input{font-size:36px}
   .solo-card .mbeats{gap:6px}
 }
-body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
 </style>
 <div class="wrap">
   <header class="top">
@@ -431,21 +420,27 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
 </section>
 
 <!-- v1.9：首頁（曲庫）的獨立節拍器，跳出視窗。不跟任何歌綁在一起，只有 PWA 有 -->
+<!-- v1.10：拿掉「只響第 1 拍」，改成點節拍燈換每一拍的重音；視窗依螢幕自動縮放，再加標準／大／特大 -->
 <div class="solo" id="solo" hidden>
   <div class="metro solo-card" role="dialog" aria-modal="true" aria-labelledby="soloTitle">
-    <div class="mhead"><b id="soloTitle">節拍器</b><button class="solo-x" id="soloClose" aria-label="關閉節拍器">✕</button></div>
+    <div class="mhead"><b id="soloTitle">節拍器</b>
+      <span class="solo-tools">
+        <span class="mpresets solo-size" id="soloSize" role="group" aria-label="視窗大小"><button data-size="s">標準</button><button data-size="l">大</button><button data-size="xl">特大</button></span>
+        <button class="solo-x" id="soloClose" aria-label="關閉節拍器">✕</button>
+      </span>
+    </div>
     <div class="bpmrow">
       <button id="soloM10" aria-label="慢 10">−10</button><button id="soloM1" aria-label="慢 1">−1</button>
       <label class="bpmbox"><input type="number" id="soloBpm" inputmode="numeric" min="30" max="260" step="1" value="100" aria-label="速度 BPM"><span>BPM</span></label>
       <button id="soloP1" aria-label="快 1">+1</button><button id="soloP10" aria-label="快 10">+10</button>
     </div>
-    <div class="mbeats" id="soloBeats" aria-hidden="true"></div>
+    <div class="mbeats" id="soloBeats" role="group" aria-label="每一拍的重音"></div>
+    <p class="mnote mbeats-hint">點數字換重音：重拍 → 輕拍 → 無聲</p>
     <div class="solo-row"><span class="solo-lab">拍號</span>
       <span class="mpresets" id="soloBpb" role="group" aria-label="每小節幾拍"><button data-n="2">2 拍</button><button data-n="3">3 拍</button><button data-n="4">4 拍</button><button data-n="6">6 拍</button></span>
     </div>
     <div class="mtoggles">
       <button class="tg solo-go" id="soloGo" aria-pressed="false">▶ 開始</button>
-      <button class="tg" id="soloOne" aria-pressed="false">只響第 1 拍</button>
     </div>
     <label class="mvol"><span>節拍器音量</span><input type="range" id="soloVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"><output class="mono" id="soloVolPc">80%</output></label>
   </div>
@@ -468,35 +463,11 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
 </div>
 
 <div class="wrap main">
-  <!-- v1.9：只留「跟著數」，切換列藏起來（測驗程式碼還在，見 BACKLOG 技術債）；提示卡拿掉 -->
-  <nav class="modes" role="group" aria-label="練習模式" hidden>
-    <button id="m-follow" aria-pressed="true">跟著數</button>
-    <button id="m-sec" aria-pressed="false">抓段落</button>
-    <button id="m-phrase" aria-pressed="false">抓 4 小節</button>
-  </nav>
-
   <section class="panel" id="panelFollow">
     <div class="opts">
       <span class="viewsw" role="group" aria-label="顯示"><button id="v-score" aria-pressed="true">鼓譜</button><button id="v-map" aria-pressed="false">小節地圖</button></span>
-      <span hidden><input type="checkbox" id="click"><input type="checkbox" id="clickOne"><select id="rate"><option value="1" selected>1×</option></select></span>
+      <span hidden><input type="checkbox" id="click"><select id="rate"><option value="1" selected>1×</option></select></span>
     </div>
-  </section>
-
-  <section class="panel" id="panelQuiz" hidden>
-    <p id="quizIntro"></p>
-    <div class="opts">
-      <label>從 <select id="startSec"></select> 開始</label>
-      <label><input type="checkbox" id="showLights" checked> 顯示拍子燈</label>
-      <label><input type="checkbox" id="instant" checked> 即時提示對錯</label>
-      <span class="tempoNote">速度：按下方「節拍器」調整</span><span hidden><select id="rate2"><option value="1" selected>1×</option></select></span>
-    </div>
-    <div class="qbtns">
-      <button class="ghost" id="qStart" disabled>開始測驗</button>
-      <button class="ghost" id="qEnd" disabled>看結果</button>
-    </div>
-    <p class="qhint">開始後，用畫面最下方的大按鈕作答。</p>
-    <div class="toast" id="toast" aria-live="polite"></div>
-    <div class="results" id="results" hidden></div>
   </section>
 
   <section id="scoreWrap">
@@ -550,8 +521,6 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
     </div>
     <div class="map" id="map"></div>
   </section>
-  <div class="hiddenmap" id="hiddenMap" hidden>答案先藏起來。按「看結果」或切回「跟著數」就會出現。</div>
-
   <details class="adv">
     <summary>對齊微調（換成原曲但小節對不上時用）</summary>
     <div class="row">
@@ -566,9 +535,6 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
 
 <div class="dock" id="dock">
   <div class="dock-in">
-    <div class="dock-tap" id="dockTap" hidden>
-      <button class="tap" id="tap" disabled><span id="tapLab">新段落！</span></button>
-    </div>
     <div class="metro" id="metroSheet" hidden>
       <div class="mhead"><b>節拍器與速度</b><span class="mpresets" id="tempoPresets">
         <button data-pct="0.6">60%</button><button data-pct="0.75">75%</button><button data-pct="0.85">85%</button><button data-pct="1">原速</button></span></div>
@@ -577,13 +543,13 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
         <label class="bpmbox"><input type="number" id="bpmIn" inputmode="numeric" min="30" max="260" step="1" aria-label="速度 BPM"><span>BPM</span></label>
         <button id="bpmP1" aria-label="快 1">+1</button><button id="bpmP10" aria-label="快 10">+10</button>
       </div>
-      <div class="mbeats" id="metroBeats" aria-hidden="true"></div>
+      <div class="mbeats" id="metroBeats" role="group" aria-label="每一拍的重音"></div>
+      <p class="mnote mbeats-hint">點數字換重音：重拍 → 輕拍 → 無聲</p>
       <div class="mnote" id="bpmNote"></div>
       <div class="mgroup mg-click">
         <div class="mglab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5zM11.2 5 8 19h8l-1.1-5H12l-.8-3.4L15 6.4 14.6 5z"/></svg>節拍器</div>
         <div class="mtoggles">
           <button class="tg" id="tgClick" aria-pressed="false" aria-label="節拍器開始或停止">▶ 開始</button>
-          <button class="tg" id="tgOne" aria-pressed="false">只響第 1 拍</button>
         </div>
         <label class="mvol"><span>節拍器音量</span><input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"><output class="mono" id="metroVolPc">80%</output></label>
       </div>
@@ -678,7 +644,7 @@ const audio = new Audio(); audio.preload = 'auto';
 if (PHONE){ audio.setAttribute('playsinline', ''); audio.setAttribute('webkit-playsinline', ''); }
 let pendingSeek = null;  // 還沒讀到 metadata 時的跳轉目標（iOS 不預載音檔）；桌機版永遠是 null
 let SONG = null, ORIG = null, B = [], BPB = 4, BAR1 = 0, LAST = 1, SECS = [], FILLS = new Set();
-let loaded = false, mode = 'follow', offset = 0, loop = null, actx = null, quiz = null, folderAudio = [];
+let loaded = false, offset = 0, loop = null, actx = null, folderAudio = [];
 let editing = false;
 const score = {osmd:null, ready:false, needsRender:false, stamps:[], step:0, firstBar:0, measAbs:[], measDur:[], lastTop:null, width:0};
 try { offset = (+localStorage.getItem('cb-offset') || 0)/1000; $('offset').value = Math.round(offset*1000); } catch(e){}
@@ -720,7 +686,7 @@ function setSong(s, orig){
   if (VARIANT === 'pwa' || VARIANT === 'bundle'){ offset = Number.isFinite(SONG.offsetMs) ? SONG.offsetMs/1000 : 0; $('offset').value = Math.round(offset*1000); }
   B = SONG.beats; BPB = SONG.beatsPerBar || 4; BAR1 = SONG.bar1Beat; LAST = SONG.lastBar; SECS = SONG.sections = normalizeSections(SONG.sections); FILLS = new Set(SONG.fills || []);
   score.firstBar = (SONG.score && Number.isInteger(SONG.score.firstBar)) ? SONG.score.firstBar : 0; $('firstBar').value = score.firstBar;
-  buildLights(); renderHeader(); buildMap(); buildStartSel(); if (PHONE) updateTempoUI();
+  buildLights(); renderHeader(); buildMap(); if (PHONE) updateTempoUI();
   if (score.osmd){ numberMeasures(); if (!$('scoreWrap').hidden) renderScore(); else score.needsRender = true; }
   if (loop) loop = null;
   lastBeatKey = null; tick(true);
@@ -845,7 +811,7 @@ function edited(rebuild){
   SONG.analysis = Object.assign({}, SONG.analysis, {editedAt: new Date().toISOString().slice(0, 19)});
   recomputeSubs();
   try { localStorage.setItem(songKey(ORIG || SONG), JSON.stringify(SONG)); } catch(e){}
-  renderHeader(); if (rebuild !== false) buildMap(); buildStartSel();
+  renderHeader(); if (rebuild !== false) buildMap();
   if (score.ready) drawSectionMarks();
   $('editToast').textContent = '已存在這台瀏覽器'; lastBeatKey = null; tick(true);
 }
@@ -1085,8 +1051,6 @@ $('songs').addEventListener('click', async e => {
   }
 });
 function showLibrary(){
-  if (quiz && quiz.running) finishQuiz();
-  if (mode !== 'follow') setMode('follow');
   try { audio.pause(); } catch(e){}
   $('practice').hidden = true; $('library').hidden = false; $('loader').hidden = true; document.body.classList.add('inlib');
   $('songTitle').innerHTML = '爵士鼓練習室<small id="songSub">跟著鼓譜數小節、節拍器練習</small>'; $('facts').innerHTML = ''; $('notice').hidden = true; $('mp3Warn').hidden = true;
@@ -1115,7 +1079,7 @@ function useAudio(blob){
   audio.src = URL.createObjectURL(blob);
   pendingSeek = wasT || null;
   // iOS 不會先讀音檔：不等 metadata，直接啟用播放，按下播放時才真正載入
-  loaded = true; $('seek').max = (SONG && SONG.duration) || 600; $('seek').disabled = false; $('play').disabled = false; $('qStart').disabled = false;
+  loaded = true; $('seek').max = (SONG && SONG.duration) || 600; $('seek').disabled = false; $('play').disabled = false;
   const onMeta = () => {
     if (isFinite(audio.duration) && audio.duration > 0) $('seek').max = audio.duration;
     if (pendingSeek !== null){ try { audio.currentTime = pendingSeek; } catch(e){} pendingSeek = null; }
@@ -1191,7 +1155,7 @@ function updateTempoUI(){
   if (document.activeElement !== $('bpmIn')) $('bpmIn').value = curBpm();
   const pct = Math.round((audio.playbackRate || 1) * 100);
   $('bpmNote').textContent = `原曲 ${Math.round(songBpm())} BPM · 目前 ${pct}%` + (!audio.muted && (pct < 50 || pct > 150) ? ' · 速度差很多時歌曲音質會變差，可以開「歌曲靜音」' : '');
-  $('tgClick').setAttribute('aria-pressed', $('click').checked); $('tgClick').textContent = $('click').checked ? '■ 停止' : '▶ 開始'; $('tgOne').setAttribute('aria-pressed', $('clickOne').checked);
+  $('tgClick').setAttribute('aria-pressed', $('click').checked); $('tgClick').textContent = $('click').checked ? '■ 停止' : '▶ 開始';
   $('tgMute').setAttribute('aria-pressed', !!audio.muted); $('clickBtn').setAttribute('aria-pressed', $('click').checked);
   document.querySelectorAll('#tempoPresets [data-pct]').forEach(b => b.setAttribute('aria-pressed', Math.abs(+b.dataset.pct - (audio.playbackRate || 1)) < 0.005));
 }
@@ -1224,7 +1188,6 @@ function bpmHold(btn, d, get = curBpm, set = setTempo){
 [['bpmM10', -10], ['bpmM1', -1], ['bpmP1', 1], ['bpmP10', 10]].forEach(([id, d]) => bpmHold($(id), d));
 $('tempoPresets').addEventListener('click', e => { const b = e.target.closest('[data-pct]'); if (b){ setRate(+b.dataset.pct); updateTempoUI(); } });
 $('tgClick').onclick = () => { const c = $('click'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); updateTempoUI(); };
-$('tgOne').onclick = () => { $('clickOne').checked = !$('clickOne').checked; updateTempoUI(); };
 function setSongMuted(on){
   audio.muted = on;
   if (typeof MIX !== 'undefined') MIX.stems.forEach(st => { if (st.el !== audio) st.el.muted = on; });
@@ -1272,15 +1235,15 @@ audio.addEventListener('play', wireSong);
 //   按播放後聲音要過一兩百毫秒才出來，這段時間 currentTime 停著不動，照它排的拍子會太早；暫停時換時鐘也會偏
 const MET_LOOK = 0.12;    // 提前排多久（秒）
 const MET_SAMPLES = 15;   // 歌曲時間對 AudioContext 時間的換算，取最近幾次的中位數（iPad 的 currentTime 讀數會跳幾十毫秒）
-const MET = {next: null, idx: 0, last: null, d: [], tRef: null, rate: 1, q: [], shown: null};
+const MET = {next: null, idx: 0, last: null, d: [], tRef: null, rate: 1, q: [], shown: null, pat: null};
 // next：下一拍的 actx 時間；idx：第幾拍（idx % BPB === 0 是重拍）；last：上一個排好的拍子的 actx 時間
 // d：每個畫面量一次 actx.currentTime × rate − 歌曲時間；tRef：重設當下的歌曲時間，歌曲時間開始走了才開始量
-// q：排好、還沒亮燈的拍子 {w: actx 時間, i: 小節內第幾拍}；shown：面板節拍燈目前亮第幾個（-1＝全熄）
+// q：排好、還沒亮燈的拍子 {w: actx 時間, i: 小節內第幾拍}；shown／pat：面板節拍燈目前亮第幾個（-1＝全熄）、畫的是哪一組重音
 const metroRunning = () => MET.next !== null;
 // 方便除錯、測試：running＝正在響；locked＝正在對齊歌曲；now()＝歌曲時間和 AudioContext 時間；phase(t)＝歌曲時間 t 離最近一拍差幾拍
 window.__cbMetro = {get running(){ return metroRunning(); }, get locked(){ return metroLock() !== null; },
   now: () => ({t: curTime(), a: actx ? actx.currentTime : 0, rate: audio.playbackRate || 1, paused: audio.paused}),
-  phase(t){ const x = beatIdx(t - offset); return x - Math.round(x); }};
+  phase(t){ const x = beatIdx(t - offset); return x - Math.round(x); }, get pat(){ return metroPat(); }};
 function clickAt(when, accent){
   // v1.8 加大：峰值 0.7／0.4 → 1.0／0.7，最大聲保持 15ms 再衰減，整聲約 0.1 秒（v1.7 以前 6～7ms 就掉了一大半，聽起來很小）
   const o = actx.createOscillator(), g = actx.createGain(), peak = Math.max(0.0002, (accent ? 1 : .7) * metroVol());
@@ -1291,20 +1254,41 @@ function clickAt(when, accent){
 }
 // v1.8：面板裡的節拍燈，跟節拍器自己的時鐘走（歌曲沒在播也會跳）。
 // 每一拍排好時記下預定響的時間（MET.q），等聲音真的出來（actx 時間扣掉輸出延遲）才亮。「只響第 1 拍」時沒聲音的拍子也要亮
-// st.shown：目前亮第幾個（-1＝全熄）。v1.9 首頁的獨立節拍器也用（box、拍數、狀態不同）
-function beatLights(box, n, i, st){
-  if (box.childElementCount !== n){   // 第一次、或換歌／換拍號後拍數變了
-    box.innerHTML = Array.from({length: n}, (_, k) => `<span${k === 0 ? ' class="one"' : ''}>${k + 1}</span>`).join('');
-    st.shown = null;
+// v1.10：每一拍的重音。pattern 是字串，一個字一拍：a＝重拍（1600Hz）、n＝輕拍（1000Hz）、m＝無聲。點節拍燈依 a → n → m → a 換。
+// 依每小節拍數分開存（{"4": "anan", ...}），練習頁 cb-metro-acc（所有歌共用）、首頁 cb-solo-acc。預設第 1 拍重拍、其他輕拍
+const ACC_NEXT = {a: 'n', n: 'm', m: 'a'}, ACC_NAME = {a: '重拍', n: '輕拍', m: '無聲'};
+const accDefault = n => 'a' + 'n'.repeat(Math.max(0, n - 1));
+function accLoad(key){ try { const o = JSON.parse(localStorage.getItem(key)); return o && typeof o === 'object' ? o : {}; } catch(e){ return {}; } }
+function accGet(map, n){ const p = map[n]; return typeof p === 'string' && p.length === n && /^[anm]+$/.test(p) ? p : accDefault(n); }
+function accToggle(map, key, n, k){
+  const p = accGet(map, n); map[n] = p.slice(0, k) + ACC_NEXT[p[k]] + p.slice(k + 1);
+  try { localStorage.setItem(key, JSON.stringify(map)); } catch(e){}
+}
+// 節拍燈（也是重音按鈕）。pat：這組的重音；i：目前亮第幾個（-1＝全熄）；st.shown／st.pat：上次畫的狀態，沒變就不動 DOM
+function beatLights(box, pat, i, st){
+  if (box.childElementCount !== pat.length){   // 第一次、或換歌／換拍號後拍數變了
+    box.innerHTML = [...pat].map((_, k) => `<button type="button" data-k="${k}">${k + 1}</button>`).join('');
+    st.shown = null; st.pat = null;
+  }
+  if (st.pat !== pat){
+    st.pat = pat;
+    [...box.children].forEach((b, k) => { b.className = 'acc-' + pat[k]; b.setAttribute('aria-label', `第 ${k + 1} 拍：${ACC_NAME[pat[k]]}（點一下切換）`); });
   }
   if (st.shown === i) return;
   st.shown = i;
   for (let k = 0; k < box.children.length; k++) box.children[k].classList.toggle('on', k === i);
 }
+// 點節拍燈換重音。onToggle(k)：改 pattern；之後馬上重畫（不等下一拍）
+function beatLightsClick(box, onToggle, redraw){
+  box.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; onToggle(+b.dataset.k); redraw(); });
+}
 // 聲音真的出來的 actx 時間（扣掉輸出延遲）；q 裡 w 已經到了的拍子取出來，回傳最後一個
 const heardTime = () => actx.currentTime - (actx.outputLatency || actx.baseLatency || 0);
 function beatsDue(q){ const h = heardTime(); let cur = null; while (q.length && q[0].w <= h) cur = q.shift(); return cur; }
-const metroBeatsShow = i => beatLights($('metroBeats'), BPB, i, MET);
+const METRO_ACC = accLoad('cb-metro-acc');
+const metroPat = () => accGet(METRO_ACC, BPB);
+const metroBeatsShow = i => beatLights($('metroBeats'), metroPat(), i, MET);
+beatLightsClick($('metroBeats'), k => accToggle(METRO_ACC, 'cb-metro-acc', BPB, k), () => metroBeatsShow(MET.shown === null ? -1 : MET.shown));
 function metroBeatsTick(){
   if (!metroRunning() || !actx){ MET.q = []; metroBeatsShow(-1); return; }
   const cur = beatsDue(MET.q);
@@ -1341,7 +1325,7 @@ function metroAlign(d, now){
   return gap;
 }
 function metroTick(){
-  if (!$('click').checked || mode !== 'follow' || !actx){ metroStop(); metroBeatsTick(); return; }
+  if (!$('click').checked || !actx){ metroStop(); metroBeatsTick(); return; }
   if (!metroRunning()) metroStart();
   metroSample();
   const now = actx.currentTime, d = metroLock();
@@ -1349,7 +1333,8 @@ function metroTick(){
   let gap = d !== null ? metroAlign(d, now) : 60 / curBpm();
   for (let g = 0; g < 8 && MET.next - now < MET_LOOK; g++){
     const inBar = ((MET.idx % BPB) + BPB) % BPB;
-    if (inBar === 0 || !$('clickOne').checked) clickAt(MET.next, inBar === 0);
+    const acc = metroPat()[inBar];
+    if (acc !== 'm') clickAt(MET.next, acc === 'a');
     MET.q.push({w: MET.next, i: inBar});
     MET.last = MET.next; MET.idx++; MET.next += gap;
     if (d !== null) gap = metroAlign(d, now);
@@ -1361,15 +1346,25 @@ audio.addEventListener('volumechange', updateTempoUI);
 $('click').addEventListener('change', () => { $('clickBtn').setAttribute('aria-pressed', $('click').checked); if ($('click').checked) ensureCtx(); });
 /* ---------- 首頁的獨立節拍器（v1.9，只有 PWA） ---------- */
 // 曲庫頁的「節拍器」按鈕打開的跳出視窗。不跟任何歌綁在一起：自己的 BPM、拍號、時鐘，所以比練習頁的節拍器（MET）簡單，不用對齊歌曲。
-// 共用：clickAt()（發聲；音量照 #metroVol，所以和練習頁共用 cb-metro-vol）、bpmHold()（長按）、beatLights()／beatsDue()（節拍燈）。
+// 共用：clickAt()（發聲；音量照 #metroVol，所以和練習頁共用 cb-metro-vol）、bpmHold()（長按）、beatLights()／beatsDue()（節拍燈）、
+// accGet()／accToggle()（v1.10 每一拍的重音，存在 cb-solo-acc）。
 // 關掉視窗就停；打開時如果練習頁的節拍器還在響，先停掉，不會兩個一起響。
-const SOLO = {next: null, idx: 0, q: [], shown: null, raf: 0};
+const SOLO = {next: null, idx: 0, q: [], shown: null, pat: null, raf: 0};
 const SOLO_BPBS = [2, 3, 4, 6];
 const soloLoad = (k, def) => { try { const v = localStorage.getItem(k); return v === null ? def : v; } catch(e){ return def; } };
 const soloSave = (k, v) => { try { localStorage.setItem(k, v); } catch(e){} };
 let soloBpmV = Math.max(30, Math.min(260, Math.round(+soloLoad('cb-solo-bpm', 100) || 100)));
 let soloBpbV = SOLO_BPBS.includes(+soloLoad('cb-solo-bpb', 4)) ? +soloLoad('cb-solo-bpb', 4) : 4;
-let soloOneV = soloLoad('cb-solo-one', '0') === '1';
+const SOLO_ACC = accLoad('cb-solo-acc');
+// v1.9 的「只響第 1 拍」換算成重音：開著的話，每種拍號都設成「重 無 無…」，之後不再讀 cb-solo-one
+if (soloLoad('cb-solo-one', '0') === '1'){
+  SOLO_BPBS.forEach(n => { if (!SOLO_ACC[n]) SOLO_ACC[n] = 'a' + 'm'.repeat(n - 1); });
+  soloSave('cb-solo-acc', JSON.stringify(SOLO_ACC));
+}
+try { localStorage.removeItem('cb-solo-one'); } catch(e){}
+const soloPat = () => accGet(SOLO_ACC, soloBpbV);
+const SOLO_SIZES = ['s', 'l', 'xl'];   // 標準／大／特大，v1.10
+let soloSizeV = SOLO_SIZES.includes(soloLoad('cb-solo-size', 's')) ? soloLoad('cb-solo-size', 's') : 's';
 const soloRunning = () => SOLO.next !== null;
 const soloBpm = () => soloBpmV;
 function soloSetBpm(b){
@@ -1379,10 +1374,11 @@ function soloSetBpm(b){
 function soloUI(){
   if (document.activeElement !== $('soloBpm')) $('soloBpm').value = soloBpmV;
   document.querySelectorAll('#soloBpb [data-n]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.n === soloBpbV));
-  $('soloOne').setAttribute('aria-pressed', soloOneV);
+  document.querySelectorAll('#soloSize [data-size]').forEach(b => b.setAttribute('aria-pressed', b.dataset.size === soloSizeV));
+  document.querySelector('.solo-card').dataset.size = soloSizeV;
   $('soloGo').setAttribute('aria-pressed', soloRunning()); $('soloGo').textContent = soloRunning() ? '■ 停止' : '▶ 開始';
   $('soloVolPc').textContent = pctText(+$('soloVol').value);
-  if (!soloRunning()) beatLights($('soloBeats'), soloBpbV, -1, SOLO);
+  if (!soloRunning()) beatLights($('soloBeats'), soloPat(), -1, SOLO);
 }
 function soloTick(){
   SOLO.raf = 0;
@@ -1390,13 +1386,13 @@ function soloTick(){
   const now = actx.currentTime;
   if (SOLO.next < now - 0.05) SOLO.next = now + 0.05;   // 畫面暫停更新過（切到背景）：從現在接著響
   for (let g = 0; g < 8 && SOLO.next - now < MET_LOOK; g++){
-    const i = SOLO.idx % soloBpbV;
-    if (i === 0 || !soloOneV) clickAt(SOLO.next, i === 0);
+    const i = SOLO.idx % soloBpbV, acc = soloPat()[i];
+    if (acc !== 'm') clickAt(SOLO.next, acc === 'a');
     SOLO.q.push({w: SOLO.next, i});
     SOLO.idx++; SOLO.next += 60 / soloBpmV;
   }
   const cur = beatsDue(SOLO.q);
-  if (cur) beatLights($('soloBeats'), soloBpbV, cur.i, SOLO);
+  if (cur) beatLights($('soloBeats'), soloPat(), cur.i, SOLO);
   SOLO.raf = requestAnimationFrame(soloTick);
 }
 function soloStart(){
@@ -1423,11 +1419,15 @@ $('soloClose').onclick = soloClose;
 $('solo').addEventListener('click', e => { if (e.target === $('solo')) soloClose(); });   // 點視窗外面
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('solo').hidden) soloClose(); });
 $('soloGo').onclick = () => { soloRunning() ? soloStop() : soloStart(); };
-$('soloOne').onclick = () => { soloOneV = !soloOneV; soloSave('cb-solo-one', soloOneV ? '1' : '0'); soloUI(); };
+beatLightsClick($('soloBeats'), k => accToggle(SOLO_ACC, 'cb-solo-acc', soloBpbV, k), () => beatLights($('soloBeats'), soloPat(), SOLO.shown === null ? -1 : SOLO.shown, SOLO));
+$('soloSize').addEventListener('click', e => {
+  const b = e.target.closest('[data-size]'); if (!b) return;
+  soloSizeV = b.dataset.size; soloSave('cb-solo-size', soloSizeV); soloUI();
+});
 $('soloBpb').addEventListener('click', e => {
   const b = e.target.closest('[data-n]'); if (!b) return;
   soloBpbV = +b.dataset.n; soloSave('cb-solo-bpb', soloBpbV);
-  SOLO.idx = 0; SOLO.q = []; SOLO.shown = null;   // 換拍號：下一拍從重拍開始
+  SOLO.idx = 0; SOLO.q = []; SOLO.shown = null;   // 換拍號：下一拍從第 1 拍開始
   soloUI();
 });
 $('soloBpm').addEventListener('change', e => soloSetBpm(e.target.value));
@@ -1435,7 +1435,7 @@ $('soloBpm').addEventListener('change', e => soloSetBpm(e.target.value));
 $('soloVol').addEventListener('input', () => {   // 和練習頁的節拍器音量是同一個設定
   $('metroVol').value = $('soloVol').value; $('metroVol').dispatchEvent(new Event('input')); soloUI();
 });
-window.__cbSolo = {get running(){ return soloRunning(); }, get bpm(){ return soloBpmV; }, get bpb(){ return soloBpbV; }};   // 方便除錯、測試
+window.__cbSolo = {get running(){ return soloRunning(); }, get bpm(){ return soloBpmV; }, get bpb(){ return soloBpbV; }, get pat(){ return soloPat(); }, get size(){ return soloSizeV; }};   // 方便除錯、測試
 soloUI();
 /* ---------- 分軌混音器 ---------- */
 const STEM_LABEL = {drums:'鼓', bass:'貝斯', vocals:'人聲', other:'其他樂器', guitar:'吉他', piano:'鋼琴', original:'原曲'};
@@ -1912,10 +1912,10 @@ if (PHONE){  // 手機系：播放時保持螢幕亮著
   audio.onpause = () => { setPlayIcon(); holdScreen(metroFree()); };
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!audio.paused || metroFree())) holdScreen(true); });
 } else audio.onplay = audio.onpause = setPlayIcon;
-audio.onended = () => { setPlayIcon(); if (quiz && quiz.running) finishQuiz(); };
+audio.onended = () => { setPlayIcon(); };
 $('seek').addEventListener('input', e => seekTo(+e.target.value));
-const setRate = v => { audio.playbackRate = +v; $('rate').value = v; $('rate2').value = v; };
-$('rate').onchange = e => setRate(e.target.value); $('rate2').onchange = e => setRate(e.target.value);
+const setRate = v => { audio.playbackRate = +v; $('rate').value = v; };
+$('rate').onchange = e => setRate(e.target.value);
 // 對齊位移：桌機版、手機版存在 localStorage（cb-offset）；PWA、打包檔跟著歌存在 SONG.offsetMs
 $('offset').onchange = e => {
   offset = (+e.target.value || 0)/1000;
@@ -1935,130 +1935,40 @@ function tick(force){
   const {bar, beat} = pos(t);
   const key = bar + ':' + beat;
   if (key !== lastBeatKey || force){
-    if (!PHONE && !force && !audio.paused && lastBeatKey !== null && $('click').checked && mode === 'follow' && bar >= 0 && bar <= LAST && (beat === 1 || !$('clickOne').checked)) click(beat === 1);
+    if (!PHONE && !force && !audio.paused && lastBeatKey !== null && $('click').checked && bar >= 0 && bar <= LAST && (beat === 1 || !$('clickOne').checked)) click(beat === 1);
     lastBeatKey = key;
-    const hide = mode !== 'follow' && quiz && quiz.running;
-    const showL = !hide || $('showLights').checked;
-    lights.forEach((l, i) => l.classList.toggle('on', showL && bar >= 0 && bar <= LAST && i === beat - 1));
+    lights.forEach((l, i) => l.classList.toggle('on', bar >= 0 && bar <= LAST && i === beat - 1));
     const inSong = bar >= 1 && bar <= LAST;
-    phr.forEach((p, i) => p.classList.toggle('on', !hide && inSong && i === (bar - 1) % 4));
-    $('phraseLab').textContent = hide ? '4 小節一句' : inSong ? `這句的第 ${(bar - 1) % 4 + 1} 小節` : '4 小節一句';
+    phr.forEach((p, i) => p.classList.toggle('on', inSong && i === (bar - 1) % 4));
+    $('phraseLab').textContent = inSong ? `這句的第 ${(bar - 1) % 4 + 1} 小節` : '4 小節一句';
     const pre = (SONG.soundStart ?? 0) + offset - 0.05;
-    if (hide){ $('barNum').textContent = '?'; $('beatLab').textContent = '自己數'; $('secName').innerHTML = '段落：<b>（測驗中）</b>'; }
-    else if (bar < 0 || (bar === 0 && t < pre)){ $('barNum').textContent = '–'; $('beatLab').textContent = loaded ? '還沒進拍' : '尚未播放'; $('secName').innerHTML = '段落：<b>—</b>'; }
+    if (bar < 0 || (bar === 0 && t < pre)){ $('barNum').textContent = '–'; $('beatLab').textContent = loaded ? '還沒進拍' : '尚未播放'; $('secName').innerHTML = '段落：<b>—</b>'; }
     else if (bar === 0){ $('barNum').textContent = '0'; $('beatLab').textContent = `第 ${beat} 拍 · 預備拍`; $('secName').innerHTML = '段落：<b>預備拍</b>'; }
     else if (bar > LAST){ $('barNum').textContent = '–'; $('beatLab').textContent = '歌曲結束'; $('secName').innerHTML = '段落：<b>—</b>'; }
     else { const s = secOf(bar); $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = s ? `段落：<b>${esc(secLabel(s))}</b> · 這段第 ${bar - s.from + 1}/${s.to - s.from + 1} 小節` : '段落：<b>—</b>'; }
-    if (nowBar !== bar){ if (barEls[nowBar]) barEls[nowBar].classList.remove('now'); if (!hide && barEls[bar]) barEls[bar].classList.add('now'); nowBar = bar; }
+    if (nowBar !== bar){ if (barEls[nowBar]) barEls[nowBar].classList.remove('now'); if (barEls[bar]) barEls[bar].classList.add('now'); nowBar = bar; }
   }
-  if (quiz && quiz.running) quizTick(t);
   if (score.ready && !$('scoreWrap').hidden) syncScore(t);
 }
 // 手機系的節拍器用 Web Audio 排程（metroTick），沒開歌也要跑；桌機版在 tick 裡每拍即時響
 (function loopRAF(){ tick(false); if (PHONE) metroTick(); requestAnimationFrame(loopRAF); })();
 
-/* ---------- modes + views ---------- */
-const MODES = {follow:'m-follow', sec:'m-sec', phrase:'m-phrase'};
-let answersVisible = true, view = 'score';
+/* ---------- 鼓譜／小節地圖切換 ---------- */
+// v1.10：測驗（抓段落、抓 4 小節）整個刪掉，只剩「跟著數」，這裡只管鼓譜和地圖的切換
+let view = 'score';
 try { if (localStorage.getItem('cb-view') === 'map') view = 'map'; } catch(e){}
-function showMap(v){ answersVisible = v; applyView(); }
 function applyView(){
-  const showS = answersVisible && view === 'score', showM = answersVisible && view === 'map';
-  $('scoreWrap').hidden = !showS; $('mapWrap').hidden = !showM; $('hiddenMap').hidden = answersVisible;
+  $('scoreWrap').hidden = view !== 'score'; $('mapWrap').hidden = view !== 'map';
   $('v-score').setAttribute('aria-pressed', view === 'score'); $('v-map').setAttribute('aria-pressed', view === 'map');
-  if (showS && score.osmd && score.needsRender) renderScore();
+  if (view === 'score' && score.osmd && score.needsRender) renderScore();
 }
 $('v-score').onclick = () => { view = 'score'; try { localStorage.setItem('cb-view', view); } catch(e){} applyView(); };
 $('v-map').onclick = () => { view = 'map'; try { localStorage.setItem('cb-view', view); } catch(e){} applyView(); };
-function setMode(m){
-  if (quiz && quiz.running) finishQuiz();
-  mode = m; Object.entries(MODES).forEach(([k, id]) => $(id).setAttribute('aria-pressed', k === m));
-  $('panelFollow').hidden = m !== 'follow'; $('panelQuiz').hidden = m === 'follow';
-  if (PHONE){ $('dockTap').hidden = m === 'follow'; document.body.classList.toggle('quizzing', m !== 'follow'); }
-  $('results').hidden = true; $('toast').innerHTML = '';
-  if (m !== 'follow' && editing) $('editBtn').onclick();
-  showMap(m === 'follow');
-  const nb = SECS.filter(x => x.from > 1).length, hard = SECS.filter(x => x.from > 1 && x.hard).length;
-  if (m === 'sec'){
-    $('quizIntro').innerHTML = `答案和計數器都會藏起來。每次覺得<b>新段落開始</b>（鼓換打法、整體變大或變小、和弦換路線）就按一下。在段落第 1 拍前後 1 拍內按到算命中。一共 ${nb} 個交界${hard ? `，有 ${hard} 個比較難` : ''}。`;
-    $('tapLab').textContent = '新段落！';
-  } else if (m === 'phrase'){
-    $('quizIntro').innerHTML = '每次覺得<b>新的 4 小節開始</b>就按一下，也就是自己數到「<b>1</b>-2-3-4、2-2-3-4、3-2-3-4、4-2-3-4」之後回到 1 的那一下。訣竅：第 4 小節尾巴常有過門，過門後面就是答案。';
-    $('tapLab').textContent = '新的一句！';
-  }
-  if (m !== 'follow' && loop){ loop = null; buildMap(); }
-  tick(true);
-}
-Object.entries(MODES).forEach(([k, id]) => $(id).onclick = () => setMode(k));
-function buildStartSel(){
-  const sel = $('startSec'), cur = sel.value; sel.innerHTML = '';
-  SECS.forEach((s, i) => { const o = document.createElement('option'); o.value = s.from; o.textContent = i === 0 ? '歌曲開頭' : `第 ${s.from} 小節（${secLabel(s)}）`; sel.appendChild(o); });
-  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
-}
-
-/* ---------- quiz ---------- */
-function targetsFor(m, startBar){
-  if (m === 'sec') return SECS.filter(s => s.from > startBar).map(s => ({bar: s.from, label: secLabel(s) + ' 開始', hard: !!s.hard}));
-  const out = []; for (let b = 1; b <= LAST; b += 4) if (b > startBar){ const s = secOf(b); out.push({bar: b, label: `第 ${(b - 1)/4 + 1} 句${s ? '（' + s.name + '）' : ''}`}); } return out;
-}
-$('qStart').onclick = () => {
-  if (!loaded) return;
-  const startBar = +$('startSec').value;
-  quiz = {mode, startBar, targets: targetsFor(mode, startBar).map(x => ({...x, T: barStart(x.bar), state: null, tap: null})), taps: [], maxT: 0, running: true};
-  if (loop){ loop = null; buildMap(); }
-  $('results').hidden = true; $('toast').innerHTML = ''; $('tap').disabled = false; $('qEnd').disabled = false; $('qStart').textContent = '重新開始';
-  showMap(false);
-  seekTo(startBar <= 1 ? 0 : barStart(startBar - 1), true);
-};
-$('qEnd').onclick = () => { if (quiz && quiz.running) finishQuiz(); };
-function tapNow(){
-  if (!quiz || !quiz.running || audio.paused) return;
-  const t = audio.currentTime, tap = {t, used: false}; quiz.taps.push(tap);
-  $('tap').classList.add('hit'); setTimeout(() => $('tap').classList.remove('hit'), 90);
-  const tg = quiz.targets.find(x => { const d = (t - x.T)/beatLen(x.T); return !x.state && d >= -1 && d <= 1.5; });
-  if (tg){ tg.state = 'hit'; tg.tap = t; tap.used = true; if ($('instant').checked) say(`✓ 第 ${tg.bar} 小節 · ${tg.label}（${early(t - tg.T, tg.T)}）`, 'ok'); }
-  else if ($('instant').checked){ const p = pos(t); say(`這裡不是答案（你按在第 ${p.bar} 小節第 ${p.beat} 拍）`, 'no'); }
-}
-function early(d, T){ const b = d/beatLen(T); if (Math.abs(b) < .25) return '剛好'; return (b < 0 ? '早 ' : '晚 ') + Math.abs(b).toFixed(1) + ' 拍'; }
-function quizTick(t){
-  quiz.maxT = Math.max(quiz.maxT, t);
-  quiz.targets.forEach(x => { if (!x.state && (t - x.T)/beatLen(x.T) > 1.5){ x.state = 'miss'; if ($('instant').checked) say(`錯過：第 ${x.bar} 小節 · ${x.label}`, 'no'); } });
-}
-function say(msg, cls){ $('toast').innerHTML = `<span class="${cls || ''}">${esc(msg)}</span>`; }
-if (PHONE){  // 手機：pointerdown 不等 click，減少延遲；長按不跳選單
-  $('tap').addEventListener('pointerdown', e => { e.preventDefault(); tapNow(); });
-  $('tap').addEventListener('contextmenu', e => e.preventDefault());
-} else $('tap').onclick = tapNow;
+// 空白鍵：播放／暫停（原本在 quiz.js）
 document.addEventListener('keydown', e => {
   if (e.target.matches('input,select,textarea')) return;
-  if (e.code === 'Space'){ e.preventDefault(); if (mode !== 'follow' && quiz && quiz.running) tapNow(); else togglePlay(); }
+  if (e.code === 'Space'){ e.preventDefault(); togglePlay(); }
 });
-function finishQuiz(){
-  audio.pause(); quiz.running = false; $('tap').disabled = true; $('qEnd').disabled = true; $('qStart').textContent = '開始測驗';
-  const end = quiz.maxT;
-  const tg = quiz.targets.filter(x => x.T <= end - 0.2 || x.state);
-  tg.forEach(x => { if (x.state !== 'hit'){ const L = barLen(x.bar); const c = quiz.taps.filter(p => !p.used && Math.abs(p.t - x.T) <= L).sort((a, b) => Math.abs(a.t - x.T) - Math.abs(b.t - x.T))[0]; if (c){ c.used = true; x.state = 'close'; x.tap = c.t; } else x.state = 'miss'; } });
-  const extras = quiz.taps.filter(p => !p.used);
-  const hit = tg.filter(x => x.state === 'hit').length, close = tg.filter(x => x.state === 'close').length;
-  const a = quiz.startBar <= 1 ? 0 : barStart(quiz.startBar - 1), span = Math.max(1, end - a);
-  const X = t => ((t - a)/span*100).toFixed(2) + '%';
-  const col = {hit: 'var(--good)', close: 'var(--warn)', miss: 'var(--bad)'};
-  let strip = tg.map(x => `<i style="left:${X(x.T)}" title="第 ${x.bar} 小節"></i>`).join('');
-  strip += tg.filter(x => x.tap).map(x => `<u style="left:${X(x.tap)};background:${col[x.state]}"></u>`).join('');
-  strip += extras.map(p => `<u style="left:${X(p.t)};background:var(--muted)"></u>`).join('');
-  const rows = tg.map(x => `<div><span style="color:${col[x.state]}">${x.state === 'hit' ? '✓' : x.state === 'close' ? '≈' : '✗'}</span><span class="mono">第 ${x.bar} 小節</span><span>${esc(x.label)}${x.hard ? ' <span style="color:var(--muted);font-size:12px">（難）</span>' : ''}</span><span class="d">${x.tap ? early(x.tap - x.T, x.T) : '沒按'}</span></div>`).join('')
-    + extras.map(p => { const q = pos(p.t); return `<div><span style="color:var(--muted)">·</span><span class="mono">第 ${q.bar} 小節</span><span>多按的（第 ${q.beat} 拍）</span><span class="d">${fmt(p.t)}</span></div>`; }).join('');
-  const r = $('results'); r.hidden = false;
-  r.innerHTML = tg.length ? `<div class="score"><div><b>${hit}/${tg.length}</b> 命中</div><div><b style="color:var(--warn)">${close}</b> 差一點（1 小節內）</div><div><b style="color:var(--muted)">${extras.length}</b> 多按</div></div>
-    <div class="strip">${strip}</div>
-    <div class="legend"><span>直線＝正確位置</span><span><i class="dot" style="background:var(--good)"></i>命中</span><span><i class="dot" style="background:var(--warn)"></i>差一點</span><span><i class="dot" style="background:var(--muted)"></i>多按</span></div>
-    <div class="rlist">${rows}</div>
-    <p style="margin:0;font-size:13.5px;color:var(--muted)">「差一點」的地方，到小節地圖按「循環」多聽幾次那個交界。如果你很確定答案本身錯了，地圖裡可以「修正」。</p>`
-    : '<p style="margin:0">這次播放範圍內還沒有答案點，多聽一點再按「看結果」。</p>';
-  showMap(true); tick(true);
-  r.scrollIntoView({behavior: 'smooth', block: 'nearest'});
-}
-
 /* ---------- drum score (OpenSheetMusicDisplay) ---------- */
 function scoreMsg(t){ $('score').innerHTML = `<div class="msg">${t}</div>`; score.ready = false; }
 function b64Bytes(b64){ const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
@@ -2140,7 +2050,7 @@ async function mxlText(file){
 const scoreSource = (f, name) => /\.mxl$/i.test(name || f.name || '') ? async () => { try { return await mxlText(f); } catch(e){ console.warn('mxl unzip failed, fallback', e); return f; } } : () => f.text();
 async function initScore(src){
   score.ready = false; score.osmd = null;
-  if (!window.opensheetmusicdisplay){ scoreMsg('鼓譜元件沒有載入成功，重新整理看看。計數、測驗和小節地圖照常可用。'); return; }
+  if (!window.opensheetmusicdisplay){ scoreMsg('鼓譜元件沒有載入成功，重新整理看看。計數和小節地圖照常可用。'); return; }
   const host = $('score'); host.innerHTML = '<div class="msg">鼓譜載入中…</div>';
   try {
     let data = typeof src === 'function' ? await src() : src;
