@@ -111,12 +111,6 @@ button{cursor:pointer}
 .toast .ok{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
 .toast .no{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
 
-/* insight */
-.insight{margin-top:22px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.insight div{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:12px 14px;min-width:0}
-.insight b{font-family:var(--f-display);font-size:26px;font-weight:800;display:block;line-height:1.1}
-.insight span{font-size:13.5px;color:var(--muted)}
-@media (max-width:700px){.insight{grid-template-columns:1fr}}
 
 /* map */
 .maphead{margin-top:30px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
@@ -227,9 +221,6 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .phrase em{display:none}
 .ovl-time{background:var(--sheet);padding:1px 2px;border-radius:2px}
 .secname{white-space:normal;line-height:1.35}
-.insight{margin-top:14px;display:flex!important;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;-webkit-overflow-scrolling:touch}
-.insight div{padding:10px 12px;flex:0 0 82%;scroll-snap-align:start}
-.insight b{font-size:22px}
 .panel p{font-size:14px}
 .opts{gap:10px 16px}
 .opts label{min-height:36px}
@@ -1127,10 +1118,14 @@ document.addEventListener('drop', async e => {
 /* ---------- transport ---------- */
 // iOS 17 起：audioSession 設成 playback，側邊靜音鍵就不會把聲音關掉（只有手機系）
 function ensureCtx(){ if (PHONE){ try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch(e){} } try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch(e){} }
+// 桌機版每拍即時響。v1.11.1 和手機系的 clickAt()（v1.8）一樣大聲：峰值 1.0／0.7，最大聲保持 15ms，整聲約 0.1 秒。
+// 音高固定 1000／1600Hz（桌機版沒有節拍器面板，也讀不到 PWA 的 cb-metro-pitch）
 function click(accent){
-  if (!actx) return; const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
-  o.frequency.value = accent ? 1600 : 1000; g.gain.setValueAtTime(accent ? .5 : .28, t); g.gain.exponentialRampToValueAtTime(.001, t + .05);
-  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + .06);
+  if (!actx) return; const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain(), peak = accent ? 1 : .7;
+  o.frequency.value = accent ? 1600 : 1000;
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + 0.002);
+  g.gain.setValueAtTime(peak, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 0.11);
 }
 function setPlayIcon(){ $('playIcon').innerHTML = audio.paused ? '<path d="M7 4l13 8-13 8z"/>' : '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'; $('play').setAttribute('aria-label', audio.paused ? '播放' : '暫停'); }
 // 手機系：play() 被擋（iOS 常見）時把原因顯示出來
