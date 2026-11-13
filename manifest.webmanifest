@@ -1,7 +1,7 @@
 {
-  "name": "數小節練習室",
-  "short_name": "數小節",
-  "description": "聽歌數小節、抓段落、跟著鼓譜練習",
+  "name": "爵士鼓練習室",
+  "short_name": "爵士鼓",
+  "description": "爵士鼓練習：跟著鼓譜數小節、節拍器",
   "lang": "zh-Hant",
   "start_url": "./",
   "scope": "./",
