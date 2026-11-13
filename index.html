@@ -315,6 +315,12 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .metro .mpresets button[aria-pressed=true]{border-color:var(--brass);background:var(--brass-soft)}
 .metro .bpmrow{display:grid;grid-template-columns:auto auto 1fr auto auto;gap:6px;align-items:center}
 .metro .bpmrow>button{min-width:48px;min-height:44px;border-radius:8px;border:1.5px solid var(--rule);background:var(--card);font-weight:700;font-family:var(--f-mono)}
+.metro .bpmrow>button{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.metro .bpmrow>button.hold{border-color:var(--brass);background:var(--brass-soft)}
+.metro .mbeats{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:2px 0}
+.metro .mbeats span{width:34px;height:34px;border-radius:50%;border:2px solid var(--rule);display:grid;place-items:center;font-family:var(--f-mono);font-size:13px;color:var(--muted);background:var(--card)}
+.metro .mbeats span.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.metro .mbeats span.one.on{background:var(--brass);border-color:var(--brass);color:#fff}
 .metro .bpmbox{display:flex;align-items:baseline;justify-content:center;gap:6px}
 .metro .bpmbox input{width:3.4em;text-align:center;font-family:var(--f-display);font-weight:800;font-size:34px;border:0;border-bottom:2px solid var(--rule);background:transparent;color:var(--ink);padding:0}
 .metro .bpmbox span{color:var(--muted);font-size:13px}
@@ -531,6 +537,7 @@ body.quizzing{padding-bottom:calc(250px + env(safe-area-inset-bottom,0px))}
         <label class="bpmbox"><input type="number" id="bpmIn" inputmode="numeric" min="30" max="260" step="1" aria-label="速度 BPM"><span>BPM</span></label>
         <button id="bpmP1" aria-label="快 1">+1</button><button id="bpmP10" aria-label="快 10">+10</button>
       </div>
+      <div class="mbeats" id="metroBeats" aria-hidden="true"></div>
       <div class="mnote" id="bpmNote"></div>
       <div class="mgroup mg-click">
         <div class="mglab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5zM11.2 5 8 19h8l-1.1-5H12l-.8-3.4L15 6.4 14.6 5z"/></svg>節拍器</div>
@@ -1151,7 +1158,31 @@ function updateTempoUI(){
   document.querySelectorAll('#tempoPresets [data-pct]').forEach(b => b.setAttribute('aria-pressed', Math.abs(+b.dataset.pct - (audio.playbackRate || 1)) < 0.005));
 }
 $('bpmIn').addEventListener('change', e => setTempo(e.target.value));
-[['bpmM10', -10], ['bpmM1', -1], ['bpmP1', 1], ['bpmP10', 10]].forEach(([id, d]) => { $(id).onclick = () => setTempo(curBpm() + d); });
+// v1.8：−10／−1／+1／+10 長按連續加減，邊按邊改速度。按下就先改一格，按住 0.4 秒後開始連續，越按越快。
+// 用 pointer 事件；手指放開、被系統取消、滑出按鈕、碰到上下限都會停。點擊產生的 click 不再改一次（鍵盤的 click 才算）
+const HOLD_DELAY = 400, HOLD_STEPS = [[5, 120], [15, 80], [Infinity, 50]];   // [連續第幾格以前, 間隔 ms]
+function bpmHold(btn, d){
+  let timer = null, n = 0;
+  const step = () => { const b = curBpm(); setTempo(b + d); return curBpm() !== b; };   // 回傳 false＝碰到上下限
+  const stop = () => { clearTimeout(timer); timer = null; btn.classList.remove('hold'); };
+  const run = () => { if (!step()){ stop(); return; } n++; timer = setTimeout(run, HOLD_STEPS.find(([k]) => n < k)[1]); };
+  btn.addEventListener('pointerdown', e => {
+    if (e.button) return;
+    e.preventDefault();   // 不讓 iOS 長按反白、跳出選單
+    if (document.activeElement === $('bpmIn')) $('bpmIn').blur();   // 輸入框有焦點時數字不會更新
+    stop(); n = 0; btn.classList.add('hold');
+    step(); timer = setTimeout(run, HOLD_DELAY);
+  });
+  btn.addEventListener('pointermove', e => {
+    if (timer === null) return;
+    const r = btn.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) stop();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, stop));
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+  btn.addEventListener('click', e => { if (e.detail === 0) setTempo(curBpm() + d); });   // 鍵盤（Enter／空白鍵）
+}
+[['bpmM10', -10], ['bpmM1', -1], ['bpmP1', 1], ['bpmP10', 10]].forEach(([id, d]) => bpmHold($(id), d));
 $('tempoPresets').addEventListener('click', e => { const b = e.target.closest('[data-pct]'); if (b){ setRate(+b.dataset.pct); updateTempoUI(); } });
 $('tgClick').onclick = () => { const c = $('click'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); updateTempoUI(); };
 $('tgOne').onclick = () => { $('clickOne').checked = !$('clickOne').checked; updateTempoUI(); };
@@ -1202,19 +1233,41 @@ audio.addEventListener('play', wireSong);
 //   按播放後聲音要過一兩百毫秒才出來，這段時間 currentTime 停著不動，照它排的拍子會太早；暫停時換時鐘也會偏
 const MET_LOOK = 0.12;    // 提前排多久（秒）
 const MET_SAMPLES = 15;   // 歌曲時間對 AudioContext 時間的換算，取最近幾次的中位數（iPad 的 currentTime 讀數會跳幾十毫秒）
-const MET = {next: null, idx: 0, last: null, d: [], tRef: null, rate: 1};
+const MET = {next: null, idx: 0, last: null, d: [], tRef: null, rate: 1, q: [], shown: null};
 // next：下一拍的 actx 時間；idx：第幾拍（idx % BPB === 0 是重拍）；last：上一個排好的拍子的 actx 時間
 // d：每個畫面量一次 actx.currentTime × rate − 歌曲時間；tRef：重設當下的歌曲時間，歌曲時間開始走了才開始量
+// q：排好、還沒亮燈的拍子 {w: actx 時間, i: 小節內第幾拍}；shown：面板節拍燈目前亮第幾個（-1＝全熄）
 const metroRunning = () => MET.next !== null;
 // 方便除錯、測試：running＝正在響；locked＝正在對齊歌曲；now()＝歌曲時間和 AudioContext 時間；phase(t)＝歌曲時間 t 離最近一拍差幾拍
 window.__cbMetro = {get running(){ return metroRunning(); }, get locked(){ return metroLock() !== null; },
   now: () => ({t: curTime(), a: actx ? actx.currentTime : 0, rate: audio.playbackRate || 1, paused: audio.paused}),
   phase(t){ const x = beatIdx(t - offset); return x - Math.round(x); }};
 function clickAt(when, accent){
-  const o = actx.createOscillator(), g = actx.createGain(), v = metroVol();
+  // v1.8 加大：峰值 0.7／0.4 → 1.0／0.7，最大聲保持 15ms 再衰減，整聲約 0.1 秒（v1.7 以前 6～7ms 就掉了一大半，聽起來很小）
+  const o = actx.createOscillator(), g = actx.createGain(), peak = Math.max(0.0002, (accent ? 1 : .7) * metroVol());
   o.frequency.value = accent ? 1600 : 1000;
-  g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(Math.max(0.0002, (accent ? .7 : .4) * v), when + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
-  o.connect(g).connect(actx.destination); o.start(when); o.stop(when + 0.07);
+  g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(peak, when + 0.002);
+  g.gain.setValueAtTime(peak, when + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.1);
+  o.connect(g).connect(actx.destination); o.start(when); o.stop(when + 0.11);
+}
+// v1.8：面板裡的節拍燈，跟節拍器自己的時鐘走（歌曲沒在播也會跳）。
+// 每一拍排好時記下預定響的時間（MET.q），等聲音真的出來（actx 時間扣掉輸出延遲）才亮。「只響第 1 拍」時沒聲音的拍子也要亮
+function metroBeatsShow(i){
+  const box = $('metroBeats');
+  if (box.childElementCount !== BPB){   // 第一次、或換歌後每小節拍數變了
+    box.innerHTML = Array.from({length: BPB}, (_, k) => `<span${k === 0 ? ' class="one"' : ''}>${k + 1}</span>`).join('');
+    MET.shown = null;
+  }
+  if (MET.shown === i) return;
+  MET.shown = i;
+  for (let k = 0; k < box.children.length; k++) box.children[k].classList.toggle('on', k === i);
+}
+function metroBeatsTick(){
+  if (!metroRunning() || !actx){ MET.q = []; metroBeatsShow(-1); return; }
+  const heard = actx.currentTime - (actx.outputLatency || actx.baseLatency || 0);
+  let cur = null;
+  while (MET.q.length && MET.q[0].w <= heard) cur = MET.q.shift();
+  if (cur) metroBeatsShow(cur.i);
 }
 // 歌曲跳轉、播放、暫停、改速度時重新量換算
 function metroResync(){ MET.d = []; MET.tRef = curTime(); MET.rate = audio.playbackRate || 1; }
@@ -1232,7 +1285,7 @@ function metroSample(){
   MET.tRef = null;
   MET.d.push(actx.currentTime * rate - t); if (MET.d.length > MET_SAMPLES) MET.d.shift();
 }
-function metroStart(){ ensureCtx(); if (!actx || metroRunning()) return; MET.next = actx.currentTime + 0.05; MET.idx = 0; MET.last = null; holdScreen(true); }
+function metroStart(){ ensureCtx(); if (!actx || metroRunning()) return; MET.next = actx.currentTime + 0.05; MET.idx = 0; MET.last = null; MET.q = []; holdScreen(true); }
 function metroStop(){ if (!metroRunning()) return; MET.next = null; MET.last = null; if (audio.paused) holdScreen(false); }
 // 把還沒排的下一拍移到歌曲的拍子上：和上一拍隔半拍到一拍半（不會疊兩下、不會空一拍），而且還沒過去。
 // 每個畫面都做（不是等到要排的那一刻才做），所以一拿到換算值就能對齊；
@@ -1247,7 +1300,7 @@ function metroAlign(d, now){
   return gap;
 }
 function metroTick(){
-  if (!$('click').checked || mode !== 'follow' || !actx){ metroStop(); return; }
+  if (!$('click').checked || mode !== 'follow' || !actx){ metroStop(); metroBeatsTick(); return; }
   if (!metroRunning()) metroStart();
   metroSample();
   const now = actx.currentTime, d = metroLock();
@@ -1256,9 +1309,11 @@ function metroTick(){
   for (let g = 0; g < 8 && MET.next - now < MET_LOOK; g++){
     const inBar = ((MET.idx % BPB) + BPB) % BPB;
     if (inBar === 0 || !$('clickOne').checked) clickAt(MET.next, inBar === 0);
+    MET.q.push({w: MET.next, i: inBar});
     MET.last = MET.next; MET.idx++; MET.next += gap;
     if (d !== null) gap = metroAlign(d, now);
   }
+  metroBeatsTick();
 }
 audio.addEventListener('ratechange', updateTempoUI);
 audio.addEventListener('volumechange', updateTempoUI);
