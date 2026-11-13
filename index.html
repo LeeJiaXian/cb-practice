@@ -304,6 +304,12 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .metro .mg-song{--mc:var(--sV)}
 .metro .mglab{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:14px;color:var(--mc);min-width:4.6em}
 .metro .mglab svg{width:18px;height:18px;fill:currentColor}
+.metro .mpitch{flex:1;display:flex;align-items:center;gap:6px;min-width:180px;font-size:13px;color:var(--muted)}
+.metro .mpitch span{white-space:nowrap}
+.metro .mpitch small{font-size:11px}
+.metro .mpitch input{flex:1;min-width:80px;accent-color:var(--mc,var(--brass))}
+.metro .mg-click{grid-template-columns:auto 1fr}
+.metro .mg-click .mvol{grid-column:1/-1}
 .metro .mvol{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);min-width:0}
 .metro .mvol span{white-space:nowrap}
 .metro .mvol input{flex:1;min-width:60px;accent-color:var(--mc)}
@@ -378,7 +384,9 @@ body.inlib .dock{display:none}
 .solo-lab{font-size:var(--t);color:var(--muted)}
 .solo-card #soloBpb button{min-height:calc(var(--t) * 2.4);padding:0 calc(var(--t) * .9);font-size:var(--t)}
 .solo-card .tg.solo-go{min-width:7em;min-height:calc(var(--t) * 3.2);font-size:calc(var(--t) * 1.15);font-weight:700}
-.solo-card .mvol{font-size:var(--t)}
+.solo-card .mvol,.solo-card .mpitch{font-size:var(--t)}
+.solo-card .mpitch small{font-size:calc(var(--t) * .8)}
+.solo-card .mpitch input{accent-color:var(--brass)}
 .solo-card .mvol output{font-size:calc(var(--t) * .9)}
 .solo-card .mvol input{accent-color:var(--brass)}
 body.solo-open{overflow:hidden}
@@ -420,6 +428,7 @@ body.solo-open{overflow:hidden}
 </section>
 
 <!-- v1.9：首頁（曲庫）的獨立節拍器，跳出視窗。不跟任何歌綁在一起，只有 PWA 有 -->
+<!-- v1.11：開始旁邊加音高滑桿（和練習頁共用 cb-metro-pitch） -->
 <!-- v1.10：拿掉「只響第 1 拍」，改成點節拍燈換每一拍的重音；視窗依螢幕自動縮放，再加標準／大／特大 -->
 <div class="solo" id="solo" hidden>
   <div class="metro solo-card" role="dialog" aria-modal="true" aria-labelledby="soloTitle">
@@ -441,6 +450,7 @@ body.solo-open{overflow:hidden}
     </div>
     <div class="mtoggles">
       <button class="tg solo-go" id="soloGo" aria-pressed="false">▶ 開始</button>
+      <label class="mpitch"><span>音高</span><small>低</small><input type="range" class="pitch-in" id="soloPitch" min="0" max="24" step="1" value="12" aria-label="節拍器音高"><small>高</small></label>
     </div>
     <label class="mvol"><span>節拍器音量</span><input type="range" id="soloVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"><output class="mono" id="soloVolPc">80%</output></label>
   </div>
@@ -550,6 +560,7 @@ body.solo-open{overflow:hidden}
         <div class="mglab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5zM11.2 5 8 19h8l-1.1-5H12l-.8-3.4L15 6.4 14.6 5z"/></svg>節拍器</div>
         <div class="mtoggles">
           <button class="tg" id="tgClick" aria-pressed="false" aria-label="節拍器開始或停止">▶ 開始</button>
+          <label class="mpitch"><span>音高</span><small>低</small><input type="range" class="pitch-in" id="metroPitch" min="0" max="24" step="1" value="12" aria-label="節拍器音高"><small>高</small></label>
         </div>
         <label class="mvol"><span>節拍器音量</span><input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"><output class="mono" id="metroVolPc">80%</output></label>
       </div>
@@ -560,7 +571,6 @@ body.solo-open{overflow:hidden}
         </div>
         <label class="mvol"><span>歌曲音量</span><input type="range" id="songVol" min="0" max="1" step="0.05" value="1" aria-label="歌曲音量"><output class="mono" id="songVolPc">100%</output></label>
       </div>
-      <p class="mnote">節拍器有自己的開始／停止，歌曲播放、暫停都不影響：歌曲沒在播時照上面的速度響，播放時自動對齊歌曲的拍子。歌曲靜音＋節拍器＝只聽節拍器，鼓譜和計數器照樣跟著走。</p>
       <p class="mnote mdiag mono" id="audioDiag" hidden></p>
     </div>
     <div class="mixer" id="mixer" hidden>
@@ -1244,10 +1254,32 @@ const metroRunning = () => MET.next !== null;
 window.__cbMetro = {get running(){ return metroRunning(); }, get locked(){ return metroLock() !== null; },
   now: () => ({t: curTime(), a: actx ? actx.currentTime : 0, rate: audio.playbackRate || 1, paused: audio.paused}),
   phase(t){ const x = beatIdx(t - offset); return x - Math.round(x); }, get pat(){ return metroPat(); }};
+// v1.11 音高：滑桿調輕拍的頻率，重拍固定是 1.6 倍（預設 1000／1600Hz，和以前一樣）。
+// 滑桿是半音（0～24），500Hz 起每 12 格高一個八度：0＝500、12＝1000、24＝2000Hz，這樣拖起來高低變化平均。
+// 練習頁和首頁的滑桿（class pitch-in）共用一個設定 cb-metro-pitch（存 Hz）。最低 500Hz：iPad 喇叭低音弱，也容易被大鼓蓋掉
+const PITCH_BASE = 500, PITCH_STEPS = 24, ACC_RATIO = 1.6;
+const pitchHz = st => Math.round(PITCH_BASE * Math.pow(2, st / 12));
+const pitchStep = hz => Math.max(0, Math.min(PITCH_STEPS, Math.round(12 * Math.log2(hz / PITCH_BASE))));
+let metroPitchV = 1000;
+try { const v = +localStorage.getItem('cb-metro-pitch'); if (v >= pitchHz(0) && v <= pitchHz(PITCH_STEPS)) metroPitchV = v; } catch(e){}
+let pitchPreviewAt = 0;
+document.querySelectorAll('.pitch-in').forEach(s => {
+  s.value = pitchStep(metroPitchV);
+  s.addEventListener('input', () => {
+    metroPitchV = pitchHz(+s.value);
+    try { localStorage.setItem('cb-metro-pitch', metroPitchV); } catch(e){}
+    document.querySelectorAll('.pitch-in').forEach(o => { if (o !== s) o.value = s.value; });
+    // 沒在響時試響一下（最多每 0.15 秒一下）；在響的話下一拍就是新音高
+    const busy = metroRunning() || (typeof soloRunning === 'function' && soloRunning());
+    if (busy || performance.now() - pitchPreviewAt < 150) return;
+    pitchPreviewAt = performance.now();
+    ensureCtx(); if (actx) clickAt(actx.currentTime + 0.01, false);
+  });
+});
 function clickAt(when, accent){
   // v1.8 加大：峰值 0.7／0.4 → 1.0／0.7，最大聲保持 15ms 再衰減，整聲約 0.1 秒（v1.7 以前 6～7ms 就掉了一大半，聽起來很小）
   const o = actx.createOscillator(), g = actx.createGain(), peak = Math.max(0.0002, (accent ? 1 : .7) * metroVol());
-  o.frequency.value = accent ? 1600 : 1000;
+  o.frequency.value = accent ? metroPitchV * ACC_RATIO : metroPitchV;
   g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(peak, when + 0.002);
   g.gain.setValueAtTime(peak, when + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.1);
   o.connect(g).connect(actx.destination); o.start(when); o.stop(when + 0.11);
