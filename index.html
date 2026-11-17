@@ -407,6 +407,44 @@ body.ex .song-only{display:none !important}
 .mg-ex .mtoggles{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .excard .tg{border-radius:8px;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);padding:0 12px;font-weight:600}
 .metro .mg-ex{grid-template-columns:auto 1fr}
+/* v1.14 曲庫分頁（歌曲／技巧練習／組合練習）、組合練習。只用既有的顏色變數，亮暗配色跟著 :root 走 */
+.libtabs{display:flex;gap:4px;margin-top:14px;border-bottom:1px solid var(--rule);overflow-x:auto;scrollbar-width:none}
+.libtabs button{flex:0 0 auto;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font:inherit;font-weight:700;font-size:16px;min-height:44px;padding:0 12px;margin-bottom:-1px}
+.libtabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--brass)}
+.libtabs small{font-family:var(--f-mono);font-weight:400;font-size:12px;color:var(--muted);margin-left:5px}
+.combo-new{display:flex;justify-content:flex-end}
+.combo-new button[disabled]{opacity:.45}
+.song.comborow .go{grid-row:1/4}
+.song .m.combo-names{font-family:inherit;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.song .go button.edit{background:transparent;color:var(--ink);padding:0 10px}
+body:not(.combo) .combo-only{display:none !important}
+.combo-card{background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:14px;box-shadow:0 12px 40px rgb(0 0 0 / .3);
+  width:min(560px,calc(100vw - 32px));min-width:0;max-height:100%;display:flex;flex-direction:column;gap:10px;padding:16px}
+.combo-head{display:flex;align-items:center;justify-content:space-between}
+.combo-head b{font-size:19px}
+.combo-hint{color:var(--muted);font-size:13.5px;margin:0}
+.combo-list{overflow:auto;min-height:80px;border:1px solid var(--rule);border-radius:10px;background:var(--paper)}
+.combo-item{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--rule);cursor:pointer}
+.combo-item:last-child{border-bottom:0}
+.combo-item input{grid-row:1/3;width:22px;height:22px;accent-color:var(--brass)}
+.combo-item .t{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.combo-item small{color:var(--muted);font-size:12px}
+.combo-item.off{opacity:.45;cursor:not-allowed}
+.combo-err{color:var(--bad);font-size:13.5px;margin:0;min-height:1em}
+.combo-foot{display:flex;justify-content:flex-end;gap:8px}
+@media (max-width:440px){
+  .song.comborow .go{grid-row:auto;grid-column:1/3;justify-content:flex-end}
+}
+.combo-card .exname{flex:0 0 auto}
+.combo-card .combo-list{flex:0 1 auto}
+#comboShuffle{min-height:40px;white-space:nowrap}
+/* v1.14.1 每行練幾遍（練習頁卡片、新組合視窗共用） */
+.combo-opts{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.combo-reps{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.combo-reps button{min-width:44px;min-height:40px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);border-radius:999px;font:inherit;font-weight:600;padding:0 12px}
+.combo-reps button[aria-pressed=true]{border-color:var(--brass);background:var(--brass-soft)}
+.combo-auto{display:inline-flex;align-items:center;gap:8px;min-height:40px;font-weight:600;color:var(--ink)}
+.combo-auto input{width:22px;height:22px;accent-color:var(--brass)}
 </style>
 <div class="wrap">
   <header class="top">
@@ -433,7 +471,12 @@ body.ex .song-only{display:none !important}
       <input type="file" id="folder" webkitdirectory multiple hidden>
     </span>
   </div>
-  <p class="libhint">歌曲可以匯入打包好的 <b>.html</b>、整包 <b>.zip</b>，或一次選 song.json＋音檔＋鼓譜。只選鼓譜（<b>.musicxml</b>、.mxl）會加成<b>技巧練習</b>：沒有音檔，跟著節拍器反覆練。都存在這台裝置上，下次直接點名稱就能練。</p>
+  <p class="libhint">歌曲可以匯入打包好的 <b>.html</b>、整包 <b>.zip</b>，或一次選 song.json＋音檔＋鼓譜。只選鼓譜（<b>.musicxml</b>、.mxl）會加成<b>技巧練習</b>：沒有音檔，跟著節拍器反覆練。幾個技巧練習可以設計成<b>組合練習</b>，隨機抽句子接成新的譜。都存在這台裝置上，下次直接點名稱就能練。</p>
+  <div class="libtabs" id="libTabs" role="tablist" aria-label="練習類別">
+    <button type="button" role="tab" data-tab="songs" aria-selected="true">歌曲<small></small></button>
+    <button type="button" role="tab" data-tab="ex" aria-selected="false">技巧練習<small></small></button>
+    <button type="button" role="tab" data-tab="combo" aria-selected="false">組合練習<small></small></button>
+  </div>
   <div class="libmsg" id="libMsg" aria-live="polite"></div>
   <div class="songs" id="songs"></div>
   <p class="libstore" id="libStore"></p>
@@ -467,6 +510,18 @@ body.ex .song-only{display:none !important}
     <label class="mvol"><span>節拍器音量</span><input type="range" id="soloVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"><output class="mono" id="soloVolPc">80%</output></label>
   </div>
 </div>
+<!-- v1.14：設計組合練習（跳出視窗，只有 PWA）。外框沿用首頁節拍器的 .solo -->
+<div class="solo" id="comboDlg" hidden>
+  <div class="combo-card" role="dialog" aria-modal="true" aria-labelledby="comboDlgTitle">
+    <div class="combo-head"><b id="comboDlgTitle">新組合</b><button type="button" class="solo-x" id="comboClose" aria-label="關閉">✕</button></div>
+    <label class="exname"><span>名稱</span><input type="text" id="comboName" maxlength="60" enterkeyhint="done" autocomplete="off" aria-label="組合練習的名稱"></label>
+    <p class="combo-hint">勾選要練的技巧練習。練習時從裡面隨機抽 8 行（每行 4 小節）接成一份譜，練習頁的「🎲 換一組」可以重抽。</p>
+    <div class="combo-list" id="comboList" role="group" aria-label="技巧練習"></div>
+    <div class="combo-reps mpresets" id="comboDlgReps" role="group" aria-label="每行連續練幾遍"><span class="exlab">每行連續練</span><button type="button" data-reps="1" aria-pressed="true">1</button><button type="button" data-reps="2">2</button><button type="button" data-reps="3">3</button><button type="button" data-reps="4">4</button><span class="exlab">遍再換下一行</span></div>
+    <p class="combo-err" id="comboErr" aria-live="polite"></p>
+    <div class="combo-foot"><button type="button" class="filebtn" id="comboCancel">取消</button><button type="button" class="filebtn primary" id="comboSave">存檔</button></div>
+  </div>
+</div>
 <div id="practice" hidden>
 <div class="transport">
   <div class="wrap tp">
@@ -487,7 +542,11 @@ body.ex .song-only{display:none !important}
 <div class="wrap main">
   <section class="excard ex-only" id="exCard" aria-label="技巧練習">
     <label class="exname"><span>名稱</span><input type="text" id="exName" maxlength="60" enterkeyhint="done" autocomplete="off" aria-label="技巧練習的名稱"></label>
-    <div class="exrec"><span class="exlab">練到 <b class="mono exbest">—</b><small class="exbest-at"></small></span><button type="button" class="tg exsave">記錄 ♩=<span class="excur"></span></button></div>
+    <div class="exrec"><span class="exlab">練到 <b class="mono exbest">—</b><small class="exbest-at"></small></span><button type="button" class="tg exsave">記錄 ♩=<span class="excur"></span></button><button type="button" class="tg combo-only" id="comboShuffle">🎲 換一組</button></div>
+    <div class="combo-opts combo-only">
+      <span class="combo-reps mpresets" id="comboReps" role="group" aria-label="每行連續練幾遍"><span class="exlab">每行</span><button type="button" data-reps="1">1</button><button type="button" data-reps="2">2</button><button type="button" data-reps="3">3</button><button type="button" data-reps="4">4</button><span class="exlab">遍</span></span>
+      <label class="combo-auto"><input type="checkbox" id="comboAuto"> 每遍自動換一組</label>
+    </div>
   </section>
   <section class="panel" id="panelFollow">
     <div class="opts">
@@ -724,7 +783,9 @@ function renderHeader(){
   document.title = SONG.title ? `${SONG.title} · 爵士鼓練習室` : '爵士鼓練習室';
   $('songTitle').innerHTML = `${esc(SONG.title || '未命名')}<small id="songSub">${esc(SONG.artist || '')}${SONG.artist ? ' · ' : ''}爵士鼓練習室</small>`;
   if (EX){   // v1.12 技巧練習：沒有原曲速度、段落、分析
-    $('facts').innerHTML = `<span class="fact chip-ex">技巧練習</span>` + [`${BPB}/4`, `${LAST} 小節`, '反覆循環'].map(c => `<span class="fact">${esc(c)}</span>`).join('');
+    const cm = EX.rec.combo;   // v1.14 組合練習：抽了幾行、從幾個技巧練習
+    $('facts').innerHTML = `<span class="fact chip-ex">${cm ? '組合練習' : '技巧練習'}</span>` +
+      (cm ? [`${BPB}/4`, `${cm.picks.length} 行${cm.reps > 1 ? ` × ${cm.reps} 遍` : ''} · ${LAST} 小節`, `從 ${cm.from} 個技巧練習隨機抽`, '反覆循環'] : [`${BPB}/4`, `${LAST} 小節`, '反覆循環']).map(c => `<span class="fact">${esc(c)}</span>`).join('');
     $('analysisNote').textContent = ''; return;
   }
   const barSec = (beatTime(BAR1 + BPB*Math.min(8, LAST)) - beatTime(BAR1))/Math.min(8, LAST);
@@ -1054,27 +1115,41 @@ async function openFiles(list){
       const old = await libGet(r.id).catch(() => null); if (old){ r.added = old.added; r.last = old.last; if (r.kind === 'exercise') exKeep(r, old); }
       await libPut(r);
     }
+    if (recs.length) setLibTab(recTab(recs[recs.length - 1]));   // v1.14：切到剛匯入的那一類
     await renderLibrary();
     setLibMsg(recs.length ? `已加入曲庫：${recs.map(r => r.title).join('、')}` : '沒有可以匯入的歌或練習', 'ok');
     if (recs.length === 1) openSong(recs[0].id);
   } catch(e){ setLibMsg(''); showErr('匯入失敗：' + e.message); }
 }
 let delArm = null;
+// v1.14：曲庫分三個分頁（歌曲／技巧練習／組合練習），記住上次選的分頁（cb-lib-tab）
+const LIB_TABS = ['songs', 'ex', 'combo'];
+let libTab = (() => { try { const v = localStorage.getItem('cb-lib-tab'); return LIB_TABS.includes(v) ? v : 'songs'; } catch(e){ return 'songs'; } })();
+function setLibTab(t){ if (!LIB_TABS.includes(t)) return; libTab = t; try { localStorage.setItem('cb-lib-tab', t); } catch(e){} }
+const recTab = r => r.kind === 'exercise' ? 'ex' : r.kind === 'combo' ? 'combo' : 'songs';
 async function renderLibrary(){
   let all = [];
   try { all = await libAll(); } catch(e){ showErr('讀不到曲庫（' + e.message + '）'); }
   all.sort((a, b) => (b.last || 0) - (a.last || 0) || (b.added || 0) - (a.added || 0));
   const lastId = (() => { try { return localStorage.getItem('cb-last'); } catch(e){ return null; } })();
+  const by = {songs: [], ex: [], combo: []}; all.forEach(r => by[recTab(r)].push(r));
+  const exById = {}; by.ex.forEach(r => { exById[r.id] = r; });
+  document.querySelectorAll('#libTabs [data-tab]').forEach(b => {
+    const t = b.dataset.tab; b.setAttribute('aria-selected', t === libTab ? 'true' : 'false'); b.querySelector('small').textContent = by[t].length || '';
+  });
   const box = $('songs');
-  box.innerHTML = all.length ? '' : '<div class="empty">曲庫還是空的。按「＋ 匯入」加入第一首歌或技巧練習。</div>';
-  // v1.12：歌曲在前、技巧練習在後，有技巧練習時才分組加標題
-  const exs = all.filter(r => r.kind === 'exercise'), songs = all.filter(r => r.kind !== 'exercise');
-  const group = t => { const h = document.createElement('h3'); h.className = 'libgroup'; h.textContent = t; box.appendChild(h); };
-  if (exs.length && songs.length) group('歌曲');
-  songs.concat(exs).forEach((r, k) => {
-    if (exs.length && k === songs.length) group('技巧練習');
+  box.innerHTML = libTab === 'combo' ? comboNewHtml(by.ex.length) : '';
+  const list = by[libTab];
+  if (!list.length){
+    const empty = {songs: all.length ? '還沒有歌曲。按「＋ 匯入」選打包好的 .html、.zip，或 song.json＋音檔＋鼓譜。' : '曲庫還是空的。按「＋ 匯入」加入第一首歌或技巧練習。',
+                   ex: '還沒有技巧練習。按「＋ 匯入」選鼓譜（.musicxml、.mxl）。',
+                   combo: by.ex.length ? '還沒有組合練習。按「＋ 新組合」挑幾個技巧練習，練習時從裡面隨機抽句子接成一份譜。' : '先到「技巧練習」匯入鼓譜，才能設計組合練習。'}[libTab];
+    box.insertAdjacentHTML('beforeend', `<div class="empty">${esc(empty)}</div>`);
+  }
+  list.forEach(r => {
     const el = document.createElement('div'); el.className = 'song' + (r.id === lastId ? ' last' : '');
     if (r.kind === 'exercise'){ el.classList.add('exrow'); el.innerHTML = exRowHtml(r); box.appendChild(el); return; }
+    if (r.kind === 'combo'){ el.classList.add('exrow', 'comborow'); el.innerHTML = comboRowHtml(r, exById); box.appendChild(el); return; }
     const meta = [r.bpm ? `♩=${Math.round(r.bpm)}` : '', r.lastBar ? `${r.lastBar} 小節` : '', r.sections ? `${r.sections} 段` : '',
                   r.stems ? `${r.stems.length} 軌` : (r.audio ? '' : '沒有音檔'), r.scoreText ? '' : '沒有鼓譜', r.last ? '上次 ' + new Date(r.last).toLocaleDateString('zh-TW') : ''].filter(Boolean).join(' · ');
     el.innerHTML = `<span class="t">${esc(r.title)}${r.artist ? ` <span style="font-weight:400;color:var(--muted);font-size:14px">${esc(r.artist)}</span>` : ''}</span>
@@ -1082,12 +1157,16 @@ async function renderLibrary(){
       <span class="go"><button data-open="${esc(r.id)}">練習</button><button class="del" data-del="${esc(r.id)}">${delArm === r.id ? '確定刪除' : '刪除'}</button></span>`;
     box.appendChild(el);
   });
-  const cnt = `${songs.length} 首` + (exs.length ? ` · ${exs.length} 個技巧練習` : '');
+  box.dataset.tab = libTab;   // 畫完了（測試等這個）
+  const cnt = `${by.songs.length} 首` + (by.ex.length ? ` · ${by.ex.length} 個技巧練習` : '') + (by.combo.length ? ` · ${by.combo.length} 個組合` : '');
   try { const est = await navigator.storage.estimate(); $('libStore').textContent = `${cnt} · 已用 ${(est.usage/1e6).toFixed(1)} MB`; } catch(e){ $('libStore').textContent = cnt; }
 }
+$('libTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b && b.dataset.tab !== libTab){ setLibTab(b.dataset.tab); delArm = null; setLibMsg(''); renderLibrary(); } });
 $('songs').addEventListener('click', async e => {
-  const o = e.target.closest('[data-open]'), d = e.target.closest('[data-del]');
+  const o = e.target.closest('[data-open]'), d = e.target.closest('[data-del]'), ed = e.target.closest('[data-edit]'), nc = e.target.closest('[data-newcombo]');
   if (o) openSong(o.dataset.open);
+  if (ed) comboEdit(ed.dataset.edit);
+  if (nc) comboEdit(null);
   if (d){
     const id = d.dataset.del;
     if (delArm !== id){ delArm = id; renderLibrary(); setTimeout(() => { if (delArm === id){ delArm = null; renderLibrary(); } }, 4000); return; }
@@ -1107,6 +1186,7 @@ async function openSong(id){
   if (!r){ showErr('找不到這首歌，可能已被刪除。'); return; }
   r.last = Date.now(); libPut(r).catch(() => {}); try { localStorage.setItem('cb-last', id); } catch(e){}
   if (r.kind === 'exercise') return openExercise(r);
+  if (r.kind === 'combo') return openCombo(r);
   exLeave();
   $('library').hidden = true; $('practice').hidden = false; $('loader').hidden = false; document.body.classList.remove('inlib');
   applySongWithEdits(JSON.parse(r.json)); applyView();
@@ -1181,8 +1261,11 @@ function click(accent){
    start／end：循環的範圍（第 1 小節開頭到最後一小節結尾）；第 0 小節是預備拍，只有從頭開始時會經過 */
 const EX_LEAD = 0.1;   // 按下播放後多久才開始走（秒）：第一拍要排得進節拍器（metroAlign 只排還沒過去的拍子）
 function exRaw(){ return EX.playing && actx ? EX.t0 + Math.max(0, actx.currentTime - EX.a0) * EX.rate : EX.t0; }
+// v1.14.1 組合練習「每遍自動換一組」：換譜時循環長度會變，所以不繞回的時間減掉 shift 才是這份譜的時間（exPos），
+// lapBase＝換譜前已經練完幾遍。shift 一定是整數小節（拍長 1 秒、每小節 BPB 拍），重音不會錯位。跳轉時兩個都歸零
+const exPos = () => exRaw() - (EX.shift || 0);
 function exWrap(t){ return t < EX.end || EX.end <= EX.start ? t : EX.start + (t - EX.start) % (EX.end - EX.start); }
-function exLap(){ const t = exRaw(); return t < EX.end || EX.end <= EX.start ? 1 : Math.floor((t - EX.start) / (EX.end - EX.start)) + 1; }
+function exLap(){ const t = exPos(); return (EX.lapBase || 0) + (t < EX.end || EX.end <= EX.start ? 1 : Math.floor((t - EX.start) / (EX.end - EX.start)) + 1); }
 const isPaused = () => EX ? !EX.playing : audio.paused;
 const curRate = () => EX ? EX.rate : (audio.playbackRate || 1);
 function exSetPlaying(on){
@@ -1208,7 +1291,7 @@ function togglePlay(){ if (!loaded) return; ensureCtx(); if (EX) exSetPlaying(!E
 function seekTo(t, play){
   if (!loaded) return; t = Math.max(0, t);
   if (EX){
-    EX.t0 = t; if (EX.playing && actx) EX.a0 = actx.currentTime + EX_LEAD;   // 跳轉後重新算第幾遍
+    EX.t0 = t; EX.shift = 0; EX.lapBase = 0; if (EX.playing && actx) EX.a0 = actx.currentTime + EX_LEAD;   // 跳轉後重新算第幾遍
     lastBeatKey = null; metroResync();
     if (play) exSetPlaying(true);
     tick(true); return;
@@ -1220,7 +1303,7 @@ function seekTo(t, play){
   if (play){ ensureCtx(); playAudio(); }
   tick(true);
 }
-function curTime(){ if (EX) return exWrap(exRaw()); return pendingSeek !== null ? pendingSeek : (audio.currentTime || 0); }
+function curTime(){ if (EX) return exWrap(exPos()); return pendingSeek !== null ? pendingSeek : (audio.currentTime || 0); }
 $('play').onclick = togglePlay;
 const nowBarNo = () => { const p = pos(curTime()); return Math.max(0, Math.min(LAST, p.bar)); };
 if (PHONE){  // 底部操作列
@@ -1322,7 +1405,9 @@ audio.addEventListener('play', wireSong);
 //   按播放後聲音要過一兩百毫秒才出來，這段時間 currentTime 停著不動，照它排的拍子會太早；暫停時換時鐘也會偏
 const MET_LOOK = 0.12;    // 提前排多久（秒）
 const MET_SAMPLES = 15;   // 歌曲時間對 AudioContext 時間的換算，取最近幾次的中位數（iPad 的 currentTime 讀數會跳幾十毫秒）
-const MET = {next: null, idx: 0, last: null, d: [], tRef: null, rate: 1, q: [], shown: null, pat: null};
+const MET = {next: null, idx: 0, last: null, d: [], tRef: null, rate: 1, q: [], shown: null, pat: null, ahead: []};
+// ahead（v1.14.1）：metroTick(look) 預排、超過 MET_LOOK 的拍子 {w, idx, last, nodes}。組合練習換譜前先排好後面幾秒，
+// 重畫鼓譜卡住主執行緒時拍子照樣響；暫停、跳轉、改速度、停止時還沒響的要取消（metroCancelAhead）
 // next：下一拍的 actx 時間；idx：第幾拍（idx % BPB === 0 是重拍）；last：上一個排好的拍子的 actx 時間
 // d：每個畫面量一次 actx.currentTime × rate − 歌曲時間；tRef：重設當下的歌曲時間，歌曲時間開始走了才開始量
 // q：排好、還沒亮燈的拍子 {w: actx 時間, i: 小節內第幾拍}；shown／pat：面板節拍燈目前亮第幾個（-1＝全熄）、畫的是哪一組重音
@@ -1360,6 +1445,7 @@ function clickAt(when, accent){
   g.gain.setValueAtTime(0.0001, when); g.gain.linearRampToValueAtTime(peak, when + 0.002);
   g.gain.setValueAtTime(peak, when + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, when + 0.1);
   o.connect(g).connect(actx.destination); o.start(when); o.stop(when + 0.11);
+  return {o, g};
 }
 // v1.8：面板裡的節拍燈，跟節拍器自己的時鐘走（歌曲沒在播也會跳）。
 // 每一拍排好時記下預定響的時間（MET.q），等聲音真的出來（actx 時間扣掉輸出延遲）才亮。「只響第 1 拍」時沒聲音的拍子也要亮
@@ -1404,7 +1490,17 @@ function metroBeatsTick(){
   if (cur) metroBeatsShow(cur.i);
 }
 // 歌曲跳轉、播放、暫停、改速度時重新量換算
-function metroResync(){ MET.d = []; MET.tRef = curTime(); MET.rate = curRate(); }
+function metroResync(){ metroCancelAhead(); MET.d = []; MET.tRef = curTime(); MET.rate = curRate(); }
+// 預排的拍子還沒響的取消，從第一個取消的那一拍接著排（照新的速度、狀態）
+function metroCancelAhead(){
+  const a = MET.ahead; MET.ahead = [];
+  if (!a.length || !actx) return;
+  const now = actx.currentTime, k = a.findIndex(x => x.w > now + 0.005);
+  if (k < 0) return;
+  a.slice(k).forEach(x => { if (x.nodes) try { x.nodes.g.gain.cancelScheduledValues(0); x.nodes.g.gain.setValueAtTime(0, now); x.nodes.o.stop(now); } catch(e){} });
+  MET.q = MET.q.filter(x => x.w < a[k].w);
+  if (MET.next !== null){ MET.next = a[k].w; MET.idx = a[k].idx; MET.last = a[k].last; }
+}
 ['play', 'pause', 'seeking', 'seeked', 'ratechange'].forEach(ev => audio.addEventListener(ev, metroResync));
 // 歌曲在播、時間真的在走時，回傳換算值 d（歌曲時間 s 在 actx 時間 (s + d) / rate 響）；否則 null
 function metroLock(){
@@ -1423,7 +1519,7 @@ function metroSample(){
   MET.d.push(actx.currentTime * rate - t); if (MET.d.length > MET_SAMPLES) MET.d.shift();
 }
 function metroStart(){ ensureCtx(); if (!actx || metroRunning()) return; MET.next = actx.currentTime + 0.05; MET.idx = 0; MET.last = null; MET.q = []; holdScreen(true); }
-function metroStop(){ if (!metroRunning()) return; MET.next = null; MET.last = null; if (isPaused()) holdScreen(false); }
+function metroStop(){ if (!metroRunning()) return; metroCancelAhead(); MET.next = null; MET.last = null; if (isPaused()) holdScreen(false); }
 // 把還沒排的下一拍移到歌曲的拍子上：和上一拍隔半拍到一拍半（不會疊兩下、不會空一拍），而且還沒過去。
 // 每個畫面都做（不是等到要排的那一刻才做），所以一拿到換算值就能對齊；
 // 符合的那一拍剛好已經過去時，這一拍先照自己的速度響，下一拍再對齊。回傳歌曲的拍長（秒）
@@ -1436,17 +1532,20 @@ function metroAlign(d, now){
   if (best !== null){ MET.next = at(best); MET.idx = best - BAR1; }
   return gap;
 }
-function metroTick(){
+function metroTick(look){
   if (!$('click').checked || !actx){ metroStop(); metroBeatsTick(); return; }
   if (!metroRunning()) metroStart();
   metroSample();
   const now = actx.currentTime, d = metroLock();
   if (MET.next < now - 0.05) MET.next = now + 0.05;   // 畫面暫停更新過（切到背景）：從現在接著響
   let gap = d !== null ? metroAlign(d, now) : 60 / curBpm();
-  for (let g = 0; g < 8 && MET.next - now < MET_LOOK; g++){
+  while (MET.ahead.length && MET.ahead[0].w < now) MET.ahead.shift();
+  const L = look || MET_LOOK;
+  for (let g = 0; g < 64 && MET.next - now < L; g++){
     const inBar = ((MET.idx % BPB) + BPB) % BPB;
-    const acc = metroPat()[inBar];
-    if (acc !== 'm') clickAt(MET.next, acc === 'a');
+    const acc = metroPat()[inBar], far = MET.next - now >= MET_LOOK;
+    const nodes = acc !== 'm' ? clickAt(MET.next, acc === 'a') : null;
+    if (far) MET.ahead.push({w: MET.next, idx: MET.idx, last: MET.last, nodes});
     MET.q.push({w: MET.next, i: inBar});
     MET.last = MET.next; MET.idx++; MET.next += gap;
     if (d !== null) gap = metroAlign(d, now);
@@ -1604,7 +1703,7 @@ function openExercise(r){
   try { audio.pause(); } catch(e){}
   teardownStems(); loop = null;
   $('library').hidden = true; $('practice').hidden = false; $('loader').hidden = false;
-  document.body.classList.remove('inlib'); document.body.classList.add('ex');
+  document.body.classList.remove('inlib'); document.body.classList.add('ex'); document.body.classList.toggle('combo', r.kind === 'combo');
   $('notice').hidden = true; $('mp3Warn').hidden = true; $('fileHint').textContent = ''; $('audioSel').hidden = true;
   const b = exBest(r);
   EX = {id: r.id, rec: r, playing: false, t0: 0, a0: 0, rate: Math.max(30, Math.min(260, r.bpm || (b && b.bpm) || EX_DEFAULT_BPM)) / 60, start: 0, end: 0};
@@ -1621,7 +1720,7 @@ function exLeave(){
   if (EX.playing) exSetPlaying(false);
   exFlushBpm();
   if ($('click').checked){ $('click').checked = false; $('click').dispatchEvent(new Event('change')); }
-  EX = null; loaded = false; document.body.classList.remove('ex');
+  EX = null; loaded = false; document.body.classList.remove('ex', 'combo');
   setPlayIcon(); updateTempoUI();
 }
 function exNote(){ const b = exBest(EX.rec); return b ? `技巧練習 · 練到 ♩=${b.bpm}（${exDate(b.at)}）` : '技巧練習 · 還沒記錄練到的速度'; }
@@ -1677,6 +1776,244 @@ $('exName').addEventListener('change', async () => {
 });
 window.__cbEx = {get on(){ return !!EX; }, get playing(){ return !!(EX && EX.playing); }, get rate(){ return EX ? EX.rate : null; },
   get lap(){ return EX ? exLap() : null; }, get t(){ return EX ? curTime() : null; }, get range(){ return EX ? [EX.start, EX.end] : null; }};   // 方便除錯、測試
+/* ---------- 組合練習（v1.14，只有 PWA） ---------- */
+// 從勾選的幾個技巧練習裡隨機抽「行」（每 4 小節一行，和紙本一樣是一個句型），接成一份新的 MusicXML，
+// 交給技巧練習的播放器（openExercise）：預備拍、循環、節拍器、每行 4 小節、BPM 記錄都照舊。
+// 和歌曲、技巧練習放在同一個 IndexedDB store（cb-library／songs），用 kind: 'combo' 分開：
+//   {id: 'combo:<建立時間>', kind: 'combo', title, items: [技巧練習的 id…], lines（每次抽幾行）, reps（每行連續練幾遍，v1.14.1）, auto（每遍自動換一組，v1.14.1）, bpm, bpmLog, added, last}
+// 抽出來的譜不存：每次打開都重抽，「🎲 換一組」也重抽。練習速度、記錄存在組合這一筆，不動原本的技巧練習。
+const COMBO_LINES = 8, COMBO_BARS = 4, COMBO_REPS = [1, 2, 3, 4];
+const comboReps = r => COMBO_REPS.includes(r && r.reps) ? r.reps : 1;
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+function shuffled(a){ a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// 一個技巧練習的譜 → 樂器清單＋每 4 小節一行（每個小節記下當時的 divisions，接譜時要換算）
+function comboSplit(rec){
+  const doc = new DOMParser().parseFromString(rec.scoreText, 'application/xml');
+  const part = doc.querySelector('score-partwise > part');
+  if (doc.getElementsByTagName('parsererror').length || !part) throw new Error(`「${rec.title}」的譜讀不懂`);
+  let div = 1;
+  const ms = [...part.children].filter(e => e.tagName === 'measure').map(m => {
+    const d = m.querySelector('attributes > divisions'); if (d && +d.textContent > 0) div = +d.textContent;
+    return {m, div};
+  });
+  const lines = [];
+  for (let i = 0; i < ms.length; i += COMBO_BARS) lines.push({rec, no: lines.length + 1, measures: ms.slice(i, i + COMBO_BARS)});
+  const sp = doc.querySelector('part-list > score-part');
+  return {rec, lines, inst: sp ? [...sp.querySelectorAll('score-instrument')] : [], midi: sp ? [...sp.querySelectorAll('midi-instrument')] : []};
+}
+
+// 隨機抽 n 行：先輪流挑技巧練習（每一輪每個練習各一次、順序打亂），再從那個練習還沒抽過的行裡挑，
+// 所以行數多的練習不會被抽得比較多；同一行不會連續出現（只有一行可抽時例外）
+function comboPick(groups, n, prev = null){   // prev：上一組最後一行（自動換一組時，新的一組第一行不要和它一樣）
+  const bags = groups.map(() => []), out = [];
+  let srcBag = [];
+  while (out.length < n){
+    if (!srcBag.length) srcBag = shuffled(groups.map((_, i) => i));
+    const g = srcBag.pop();
+    if (!bags[g].length) bags[g] = shuffled(groups[g].lines);
+    let k = bags[g].length - 1;
+    if (bags[g][k] === prev && k > 0) k--;
+    const line = bags[g].splice(k, 1)[0];
+    out.push(line); prev = line;
+  }
+  return out;
+}
+
+// 抽到的行 → 一份 MusicXML。divisions 統一成最小公倍數（各練習是 2 或 4），拍號、譜號只放在第 1 小節；
+// 每行開頭換行，並在譜上方寫出處（練習名稱＋第幾行）；最後一小節畫終止線
+// v1.14.1 reps：每行連續練幾遍，直接把那一行複製 reps 次（時間模型、游標都不用改）
+function comboXml(title, picks, groups, bpb, reps){
+  const ser = new XMLSerializer();
+  const L = picks.flatMap(p => p.measures.map(x => x.div)).reduce((a, d) => a / gcd(a, d) * d, 1);
+  const seen = new Set(), inst = [], midi = [];
+  groups.forEach(g => {
+    g.inst.forEach(e => { const id = e.getAttribute('id'); if (!seen.has('i' + id)){ seen.add('i' + id); inst.push(ser.serializeToString(e)); } });
+    g.midi.forEach(e => { const id = e.getAttribute('id'); if (!seen.has('m' + id)){ seen.add('m' + id); midi.push(ser.serializeToString(e)); } });
+  });
+  const measures = [], seq = picks.flatMap(p => Array.from({length: reps}, (_, k) => ({p, rep: k + 1})));
+  seq.forEach(({p, rep: rp}, li) => p.measures.forEach((x, mi) => {
+    const m = x.m.cloneNode(true), f = L / x.div;
+    m.querySelectorAll('attributes, print, barline').forEach(e => e.remove());
+    m.querySelectorAll('note > duration, backup > duration, forward > duration').forEach(d => { d.textContent = String(Math.round(+d.textContent * f)); });
+    m.setAttribute('number', String(measures.length + 1));
+    m.removeAttribute('implicit'); m.removeAttribute('width');
+    const doc = m.ownerDocument, first = m.firstChild;
+    const add = xml => { const n = new DOMParser().parseFromString(xml, 'application/xml').documentElement; m.insertBefore(doc.importNode(n, true), first); };
+    if (mi === 0){
+      if (li > 0) add('<print new-system="yes"/>');
+      if (li === 0) add(`<attributes><divisions>${L}</divisions><key><fifths>0</fifths></key><time><beats>${bpb}</beats><beat-type>4</beat-type></time><clef><sign>percussion</sign></clef></attributes>`);
+      add(`<direction placement="above"><direction-type><words font-size="8.5" font-weight="bold">${esc(p.rec.title)} · 第 ${p.no} 行${reps > 1 ? `（${rp}/${reps}）` : ''}</words></direction-type></direction>`);
+    }
+    if (li === seq.length - 1 && mi === p.measures.length - 1)
+      m.appendChild(doc.importNode(new DOMParser().parseFromString('<barline location="right"><bar-style>light-heavy</bar-style></barline>', 'application/xml').documentElement, true));
+    measures.push(ser.serializeToString(m).replace(/ xmlns="[^"]*"/g, ''));
+  }));
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>${esc(title)}</work-title></work>
+  <part-list><score-part id="P1"><part-name print-object="no">Drums</part-name>${inst.join('')}${midi.join('')}</score-part></part-list>
+  <part id="P1">
+${measures.join('\n')}
+  </part>
+</score-partwise>
+`;
+}
+
+// 打開組合練習：讀出勾選的技巧練習、抽行、接譜，交給 openExercise。
+// keepBpm：「換一組」、改遍數時沿用目前的速度；keepPicks：改遍數時沿用這一組抽到的行
+async function openCombo(r, keepBpm, keepPicks){
+  const recs = (await Promise.all((r.items || []).map(id => libGet(id).catch(() => null)))).filter(x => x && x.kind === 'exercise' && x.scoreText);
+  if (!recs.length){ showErr(`「${r.title}」裡的技巧練習都被刪掉了，請按「編輯」重新挑選。`); return; }
+  const bpb = recs[0].bpb, use = recs.filter(x => x.bpb === bpb);   // 編輯時就只能勾同一種拍號；這裡再擋一次
+  let groups;
+  try { groups = use.map(comboSplit).filter(g => g.lines.length); } catch(e){ showErr(e.message); return; }
+  if (!groups.length){ showErr(`「${r.title}」的技巧練習裡沒有小節`); return; }
+  const picks = keepPicks || comboPick(groups, r.lines || COMBO_LINES), reps = comboReps(r), b = comboBuild(r.title, picks, groups, bpb, reps);
+  openExercise({id: r.id, kind: 'combo', title: r.title, origTitle: r.title, bpb, bars: b.bars, scoreText: b.xml,
+                bpm: keepBpm || r.bpm, bpmLog: r.bpmLog || [], combo: {lines: b.lines, picks, groups, reps, auto: !!r.auto, from: groups.length, lapSeen: 1}});
+  comboOptsUI();
+  const skip = (r.items || []).length - groups.length;
+  if (skip > 0) $('fileHint').textContent = `有 ${skip} 個技巧練習已經刪除或拍號不同，這次沒有抽。`;
+}
+// 抽到的行 → 譜＋每一行的出處。lines：譜上的每一行（重複的也算一行），li＝抽到的第幾行、rep＝這行的第幾遍
+function comboBuild(title, picks, groups, bpb, reps){
+  let bar = 1;
+  const lines = picks.flatMap((p, li) => Array.from({length: reps}, (_, k) => {
+    const o = {from: bar, to: bar + p.measures.length - 1, title: p.rec.title, no: p.no, li, rep: k + 1}; bar = o.to + 1; return o; }));
+  return {xml: comboXml(title, picks, groups, bpb, reps), lines, bars: bar - 1};
+}
+// v1.14.1 每遍自動換一組：播放中循環回第 1 小節時（第幾遍變大），重抽、換譜，時間接著走。
+// 1. 先把節拍器後面 COMBO_AHEAD 秒的拍子排好：重畫鼓譜會卡住主執行緒（十六分音符很密的譜要「每行 4 小節」縮放時，Chromium 0.35～0.5 秒，iPad 更久），
+//    平常只提前排 0.12 秒，不先排會漏拍。暫停、改速度、跳轉時還沒響的會取消（metroCancelAhead）
+// 2. 同一個 OSMD 物件 load 新譜（不經過 initScore，畫面不會閃成「載入中」）
+// 3. EX.shift 往前移整圈，新譜從剛過去的循環交界接上；不繞回的時間、節拍器的換算值都不變，所以拍子不斷
+// 4. setSong 換時間模型（小節數可能不同）並重畫鼓譜
+const COMBO_AHEAD = 2.5;
+let comboSwapping = false;
+function comboTick(){
+  const cm = EX.rec.combo;
+  if (comboSwapping) return;
+  const lap = exLap();
+  if (!cm.auto || !EX.playing || lap <= cm.lapSeen){ cm.lapSeen = lap; return; }
+  cm.lapSeen = lap;
+  comboAutoNext();
+}
+async function comboAutoNext(){
+  const id = EX.id, cm = EX.rec.combo;
+  comboSwapping = true;
+  try {
+    if (PHONE) metroTick(COMBO_AHEAD);
+    const picks = comboPick(cm.groups, cm.picks.length, cm.picks[cm.picks.length - 1]);
+    const b = comboBuild(EX.rec.title, picks, cm.groups, EX.rec.bpb, cm.reps);
+    if (score.osmd){ score.ready = false; await score.osmd.load(separateVoiceRests(dropTimeMarks(b.xml))); }
+    if (!EX || EX.id !== id) return;   // 換譜途中離開了
+    if (PHONE && EX.playing) metroTick(COMBO_AHEAD);
+    const u = exPos(), L = EX.end - EX.start, n = u >= EX.end ? Math.floor((u - EX.start) / L) : 0;
+    EX.lapBase = exLap() - 1; EX.shift = (EX.shift || 0) + n * L;
+    EX.rec = Object.assign({}, EX.rec, {bars: b.bars, scoreText: b.xml, combo: Object.assign({}, cm, {picks, lines: b.lines, lapSeen: exLap()})});
+    setSong(exSong(EX.rec));
+    EX.end = barStart(LAST + 1); $('seek').max = EX.end;
+    EX.rec.combo.lapSeen = exLap();
+    tick(true);
+  } catch(e){ console.error(e); showErr('自動換一組失敗：' + ((e && e.message) || e)); }
+  finally { comboSwapping = false; }
+}
+$('comboAuto').addEventListener('change', async () => {
+  if (!EX || !EX.rec.combo) return;
+  const on = $('comboAuto').checked, id = EX.id;
+  EX.rec.combo.auto = on; EX.rec.combo.lapSeen = exLap();
+  try { await libUpdate(id, r => { r.auto = on; }); } catch(err){ showErr('沒有存起來：' + err.message); }
+});
+// 狀態列：現在這行是從哪個練習抽來的
+function comboLineAt(bar){ return EX && EX.rec.combo ? EX.rec.combo.lines.findIndex(l => bar >= l.from && bar <= l.to) : -1; }
+function comboSecHtml(bar){
+  const cm = EX.rec.combo, i = comboLineAt(bar);
+  if (i < 0) return `<b>組合練習</b> · 第 ${exLap()} 遍`;
+  const l = cm.lines[i];
+  return `<b>${esc(l.title)}</b> 第 ${l.no} 行${cm.reps > 1 ? `（重複 ${l.rep}/${cm.reps}）` : ''} · 組合第 ${l.li + 1}/${cm.picks.length} 行 · 第 ${exLap()} 遍`;
+}
+// 練習頁的「每行 N 遍」：改了存到組合，沿用這一組抽到的行重新接譜（從預備拍開始）
+function comboOptsUI(){
+  const reps = EX && EX.rec.combo ? EX.rec.combo.reps : 1;
+  $('comboAuto').checked = !!(EX && EX.rec.combo && EX.rec.combo.auto);
+  document.querySelectorAll('.combo-reps [data-reps]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.reps === reps ? 'true' : 'false'));
+}
+$('comboReps').addEventListener('click', async e => {
+  const b = e.target.closest('[data-reps]'); if (!b || !EX || !EX.rec.combo) return;
+  const n = +b.dataset.reps, id = EX.id, picks = EX.rec.combo.picks, bpm = curBpm();
+  if (n === EX.rec.combo.reps) return;
+  try { await libUpdate(id, r => { r.reps = n; }); } catch(err){ showErr('沒有存起來：' + err.message); return; }
+  const r = await libGet(id).catch(() => null);
+  if (r && EX && EX.id === id) openCombo(r, bpm, picks);
+});
+$('comboShuffle').addEventListener('click', async () => {
+  if (!EX || !EX.rec.combo) return;
+  const bpm = curBpm(), r = await libGet(EX.id).catch(() => null);
+  if (r) openCombo(r, bpm);
+});
+
+// 曲庫：組合練習那一列、「＋ 新組合」
+function comboNewHtml(nEx){
+  return `<div class="combo-new"><button type="button" class="filebtn primary" data-newcombo${nEx ? '' : ' disabled'}>＋ 新組合</button></div>`;
+}
+function comboRowHtml(r, exById){
+  const items = r.items || [], ok = items.filter(id => exById[id]), b = exBest(r);
+  const meta = [`${ok.length} 個技巧練習`, items.length > ok.length ? `${items.length - ok.length} 個已刪除` : '', comboReps(r) > 1 ? `每行 ${comboReps(r)} 遍` : '', r.auto ? '每遍自動換' : '',
+                b ? `練到 ♩=${b.bpm}（${exDate(b.at)}）` : '還沒記錄速度', r.last ? '上次 ' + new Date(r.last).toLocaleDateString('zh-TW') : ''].filter(Boolean).join(' · ');
+  return `<span class="t">${esc(r.title)} <span class="extag">組合</span></span>
+    <span class="m">${esc(meta)}</span>
+    <span class="m combo-names">${esc(ok.map(id => exById[id].title).join('、'))}</span>
+    <span class="go"><button data-open="${esc(r.id)}">練習</button><button class="edit" data-edit="${esc(r.id)}">編輯</button><button class="del" data-del="${esc(r.id)}">${delArm === r.id ? '確定刪除' : '刪除'}</button></span>`;
+}
+
+// 設計／編輯組合：勾選技巧練習（只能勾同一種拍號）、取名
+let comboEditId = null;
+async function comboEdit(id){
+  let all = [];
+  try { all = await libAll(); } catch(e){ showErr('讀不到曲庫（' + e.message + '）'); return; }
+  const exs = all.filter(r => r.kind === 'exercise').sort((a, b) => a.title.localeCompare(b.title, 'zh-Hant', {numeric: true}));
+  const cur = id ? all.find(r => r.id === id) : null;
+  comboEditId = cur ? cur.id : null;
+  const picked = new Set(cur ? cur.items : []);
+  $('comboDlgTitle').textContent = cur ? '編輯組合' : '新組合';
+  $('comboName').value = cur ? cur.title : `組合 ${all.filter(r => r.kind === 'combo').length + 1}`;
+  $('comboList').innerHTML = exs.map(r => `<label class="combo-item"><input type="checkbox" value="${esc(r.id)}" data-bpb="${r.bpb}"${picked.has(r.id) ? ' checked' : ''}>` +
+    `<span class="t">${esc(r.title)}</span><small class="mono">${r.bpb}/4 · ${r.bars} 小節 · ${Math.ceil(r.bars / COMBO_BARS)} 行</small></label>`).join('');
+  $('comboErr').textContent = '';
+  comboDlgReps(comboReps(cur));
+  comboBpbLock();
+  $('comboDlg').hidden = false; document.body.classList.add('solo-open');
+}
+// 勾了一個以後，拍號不同的就不能勾（一份譜只能有一種拍號）
+function comboBpbLock(){
+  const boxes = [...$('comboList').querySelectorAll('input')], on = boxes.find(b => b.checked), bpb = on ? on.dataset.bpb : null;
+  boxes.forEach(b => { b.disabled = !!bpb && b.dataset.bpb !== bpb && !b.checked; b.closest('label').classList.toggle('off', b.disabled); });
+  const n = boxes.filter(b => b.checked).length;
+  $('comboSave').textContent = n ? `存檔（${n} 個）` : '存檔';
+}
+const comboDlgReps = n => document.querySelectorAll('#comboDlgReps [data-reps]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.reps === n ? 'true' : 'false'));
+$('comboDlgReps').addEventListener('click', e => { const b = e.target.closest('[data-reps]'); if (b) comboDlgReps(+b.dataset.reps); });
+function comboClose(){ $('comboDlg').hidden = true; document.body.classList.remove('solo-open'); comboEditId = null; }
+$('comboList').addEventListener('change', () => { $('comboErr').textContent = ''; comboBpbLock(); });
+$('comboName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+$('comboClose').onclick = comboClose;
+$('comboCancel').onclick = comboClose;
+$('comboDlg').addEventListener('click', e => { if (e.target === $('comboDlg')) comboClose(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('comboDlg').hidden) comboClose(); });
+$('comboSave').onclick = async () => {
+  const items = [...$('comboList').querySelectorAll('input:checked')].map(b => b.value);
+  if (!items.length){ $('comboErr').textContent = '至少勾一個技巧練習'; return; }
+  const title = $('comboName').value.trim().slice(0, 60) || '組合練習', id = comboEditId;
+  const pr = document.querySelector('#comboDlgReps [aria-pressed=true]'), reps = pr ? +pr.dataset.reps : 1;
+  try {
+    if (id) await libUpdate(id, r => { r.title = title; r.items = items; r.reps = reps; });
+    else await libPut({id: 'combo:' + Date.now().toString(36), kind: 'combo', title, items, lines: COMBO_LINES, reps, bpm: null, bpmLog: [], added: Date.now(), last: 0});
+  } catch(err){ $('comboErr').textContent = '沒有存起來：' + err.message; return; }
+  comboClose(); setLibTab('combo'); await renderLibrary(); setLibMsg(`已存組合：${title}`, 'ok');
+};
+window.__cbCombo = {get lines(){ return EX && EX.rec.combo ? EX.rec.combo.lines : null; }, get reps(){ return EX && EX.rec.combo ? EX.rec.combo.reps : null; },
+  get swapping(){ return comboSwapping; }, get shift(){ return EX ? EX.shift || 0 : null; }, get xml(){ return EX && EX.rec.combo ? EX.rec.scoreText : null; }};   // 方便除錯、測試
 /* ---------- 分軌混音器 ---------- */
 const STEM_LABEL = {drums:'鼓', bass:'貝斯', vocals:'人聲', other:'其他樂器', guitar:'吉他', piano:'鋼琴', original:'原曲'};
 const STEM_ORDER = ['drums', 'bass', 'vocals', 'guitar', 'piano', 'other', 'original'];
@@ -2169,6 +2506,7 @@ let lastBeatKey = null, nowBar = null, lights = [];
 const phr = [...document.querySelectorAll('#phrase span')];
 function tick(force){
   if (!SONG) return;
+  if (EX && EX.rec.combo && typeof comboTick === 'function') comboTick();   // v1.14.1 每遍自動換一組
   const t = curTime();
   if (loop && !EX && !audio.paused && t >= loop.b) audio.currentTime = loop.a;
   $('seek').value = t; $('time').textContent = EX ? `${curBpm()} BPM · 第 ${exLap()} 遍` : fmt(t) + ' / ' + fmt(audio.duration || SONG.duration);
@@ -2185,7 +2523,7 @@ function tick(force){
     if (bar < 0 || (bar === 0 && t < pre)){ $('barNum').textContent = '–'; $('beatLab').textContent = loaded ? '還沒進拍' : '尚未播放'; $('secName').innerHTML = '段落：<b>—</b>'; }
     else if (bar === 0){ $('barNum').textContent = '0'; $('beatLab').textContent = `第 ${beat} 拍 · 預備拍`; $('secName').innerHTML = '段落：<b>預備拍</b>'; }
     else if (bar > LAST){ $('barNum').textContent = '–'; $('beatLab').textContent = '歌曲結束'; $('secName').innerHTML = '段落：<b>—</b>'; }
-    else if (EX){ $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = `<b>技巧練習</b> · 第 ${exLap()} 遍（共 ${LAST} 小節）`; }
+    else if (EX){ $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = EX.rec.combo ? comboSecHtml(bar) : `<b>技巧練習</b> · 第 ${exLap()} 遍（共 ${LAST} 小節）`; }
     else { const s = secOf(bar); $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = s ? `段落：<b>${esc(secLabel(s))}</b> · 這段第 ${bar - s.from + 1}/${s.to - s.from + 1} 小節` : '段落：<b>—</b>'; }
     if (nowBar !== bar){ if (barEls[nowBar]) barEls[nowBar].classList.remove('now'); if (barEls[bar]) barEls[bar].classList.add('now'); nowBar = bar; }
   }
