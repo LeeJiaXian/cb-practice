@@ -507,6 +507,7 @@ body.ex .song-only{display:none !important}
     <div class="scorecard"><div id="score"><div class="msg">鼓譜載入中…</div></div></div>
     <div class="scoreopts">
       <label>播放時 <select id="followMode" aria-label="鼓譜跟隨方式"><option value="center">保持在中間</option><option value="page">翻頁</option><option value="off">不捲動</option></select></label><input type="checkbox" id="follow" checked hidden>
+      <label class="ex-only"><input type="checkbox" id="exFour" checked> 每行 4 小節</label>
       <label class="song-only"><input type="checkbox" id="secMarks" checked> 段落色條</label>
       <label class="song-only"><input type="checkbox" id="timeMarks" checked> 譜上顯示時間</label>
       <label class="filebtn song-only" for="scoreFile">換一份譜</label><input type="file" id="scoreFile" hidden>
@@ -1657,6 +1658,13 @@ document.querySelectorAll('.exsave').forEach(btn => btn.addEventListener('click'
   exRender(); updateTempoUI();
   document.querySelectorAll('.exsave').forEach(b => { b.classList.add('saved'); setTimeout(() => b.classList.remove('saved'), 900); });
 }));
+// 每行 4 小節（v1.13）：預設勾選，所有技巧練習共用一個設定（cb-ex-four：'1'／'0'）
+try { if (localStorage.getItem('cb-ex-four') === '0') $('exFour').checked = false; } catch(e){}
+$('exFour').addEventListener('change', () => {
+  try { localStorage.setItem('cb-ex-four', $('exFour').checked ? '1' : '0'); } catch(e){}
+  if (!EX || !score.osmd) return;
+  if ($('scoreWrap').hidden) score.needsRender = true; else renderScore();
+});
 // 名稱：改完（Enter 或離開輸入框）就存；清空＝改回譜裡的名稱
 $('exName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
 $('exName').addEventListener('change', async () => {
@@ -2301,6 +2309,32 @@ async function initScore(src){
     if (!$('scoreWrap').hidden) renderScore();
   } catch(e){ console.error(e); scoreMsg('這份譜讀不進來（' + esc((e && e.message) || e) + '）。請從 MuseScore 匯出成 MusicXML 再試一次。'); }
 }
+const exFourOn = () => !!(EX && $('exFour') && $('exFour').checked);
+// RenderXMeasuresPerLineAkaSystem 只是「最多 4 小節」：放不下時 OSMD 會提早換行（十六分音符密的譜，iPad 直放只放得下 2 小節）。
+// 這時把譜縮小再畫，直到每行都是 4 小節（最後一行可以少）。縮小時 A＋ 放大會被抵銷
+function fourPerLine(o){
+  const lens = o.GraphicSheet.MusicPages.flatMap(pg => pg.MusicSystems.map(s => s.StaffLines[0].Measures.length));
+  const n = o.Sheet.SourceMeasures.length;
+  return lens.every((k, i) => k === Math.min(4, n - 4 * i)) ? 0 : Math.min(...lens);
+}
+function fitFour(o){
+  let k = fourPerLine(o), hi = o.zoom, lo = 0;
+  if (!k) return;
+  // 先往下找到放得下的大小：差很多時一次縮多一點，少畫幾次
+  for (let i = 0; i < 8 && k; i++){
+    hi = o.zoom;
+    o.zoom *= k >= 3 ? 0.85 : Math.max(0.5, (k + 0.5) / 4);
+    o.render(); k = fourPerLine(o);
+  }
+  if (k) return;   // 縮到很小還放不下（不太可能）：維持現狀
+  lo = o.zoom;
+  // 再往回找放得下的最大尺寸（二分，誤差 3% 以內），不然起點不同、縮的程度會不一樣
+  for (let i = 0; i < 4 && hi / lo > 1.03; i++){
+    o.zoom = (lo + hi) / 2; o.render();
+    if (fourPerLine(o)) hi = o.zoom; else lo = o.zoom;
+  }
+  if (o.zoom !== lo){ o.zoom = lo; o.render(); }
+}
 function numberMeasures(){ score.osmd.Sheet.SourceMeasures.forEach((m, i) => { m.MeasureNumberXML = i + score.firstBar; }); }
 function renderScore(){
   const o = score.osmd; if (!o) return;
@@ -2308,7 +2342,10 @@ function renderScore(){
   try {
     o.zoom = PHONE ? (w < 420 ? 0.46 : w < 560 ? 0.52 : 0.65) * zoomF   // 手機系：可以用 A−／A＋ 調整
                    : (w < 560 ? 0.5 : w < 800 ? 0.65 : 0.78);
+    // v1.13：技巧練習勾「每行 4 小節」時固定每行 4 小節（和紙本一樣）；歌曲照舊自動排
+    o.EngravingRules.RenderXMeasuresPerLineAkaSystem = exFourOn() ? 4 : 0;
     o.render();
+    if (exFourOn()) fitFour(o);
     score.width = w; score.needsRender = false;
     const c0 = o.cursors[0];
     o.cursors.forEach(c => { c.show(); c.reset(); });
