@@ -6,3 +6,4 @@
 *.mxl
 song*.json
 .claude/
+*.musicxml
