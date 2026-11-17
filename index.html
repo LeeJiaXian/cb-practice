@@ -1276,6 +1276,8 @@ function exSetPlaying(on){
     EX.a0 = actx.currentTime + EX_LEAD;
     if (!$('click').checked){ $('click').checked = true; $('click').dispatchEvent(new Event('change')); }   // 沒有歌可以聽，播放時節拍器一定要響
   }
+  // v1.15：暫停時節拍器也停（使用者要節拍器的開始／停止和練習的播放／暫停同步；歌曲照舊，暫停時節拍器自己響）
+  else if ($('click').checked){ $('click').checked = false; $('click').dispatchEvent(new Event('change')); }
   metroResync(); setPlayIcon(); holdScreen(on || metroRunning()); updateTempoUI(); tick(true);
 }
 // 改速度：從現在這一刻接著用新速度走，位置不跳
@@ -1357,7 +1359,8 @@ function bpmHold(btn, d, get = curBpm, set = setTempo){
 }
 [['bpmM10', -10], ['bpmM1', -1], ['bpmP1', 1], ['bpmP10', 10]].forEach(([id, d]) => bpmHold($(id), d));
 $('tempoPresets').addEventListener('click', e => { const b = e.target.closest('[data-pct]'); if (b){ setRate(+b.dataset.pct); updateTempoUI(); } });
-$('tgClick').onclick = () => { const c = $('click'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); updateTempoUI(); };
+// v1.15：技巧練習、組合練習時，面板的開始／停止就是練習的播放／暫停（exSetPlaying 會一起開關節拍器）
+$('tgClick').onclick = () => { if (EX){ ensureCtx(); exSetPlaying(!EX.playing); return; } const c = $('click'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); updateTempoUI(); };
 function setSongMuted(on){
   audio.muted = on;
   if (typeof MIX !== 'undefined') MIX.stems.forEach(st => { if (st.el !== audio) st.el.muted = on; });
