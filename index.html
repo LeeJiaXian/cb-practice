@@ -386,6 +386,27 @@ body.solo-open{overflow:hidden}
   .solo-card .bpmrow{gap:4px}
   .solo-card .mbeats{gap:6px}
 }
+/* v1.12 技巧練習：曲庫分組、標籤、練習頁上方的名稱／練到的速度。只用既有的顏色變數，亮暗配色跟著 :root 走 */
+body:not(.ex) .ex-only{display:none !important}
+body.ex .song-only{display:none !important}
+.libgroup{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:8px 0 -2px}
+.extag{display:inline-block;vertical-align:2px;font-size:11.5px;font-weight:700;color:var(--brass);background:var(--brass-soft);border:1px solid color-mix(in srgb,var(--brass) 40%,transparent);border-radius:999px;padding:1px 8px;margin-left:4px}
+.song.exrow{border-left:4px solid var(--brass)}
+.fact.chip-ex{color:var(--brass);background:var(--brass-soft);border-color:color-mix(in srgb,var(--brass) 40%,transparent);font-weight:700}
+.excard{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--brass);border-radius:10px;padding:10px 14px;margin:10px 0 4px}
+.exname{display:flex;align-items:center;gap:8px;flex:1 1 240px;min-width:0}
+.exname span{color:var(--muted);font-size:13.5px;white-space:nowrap}
+.exname input{flex:1;min-width:0;font:inherit;font-weight:700;font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:6px 10px;min-height:40px}
+.exrec{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.exlab{color:var(--muted);font-size:14px}
+.exbest{color:var(--ink);font-size:17px}
+.exbest-at{color:var(--muted);font-size:12px;margin-left:2px}
+.exsave{min-height:40px;white-space:nowrap}
+.exsave.saved{background:var(--brass);border-color:var(--brass);color:var(--card)}
+.mg-ex .mglab{color:var(--brass)}
+.mg-ex .mtoggles{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.excard .tg{border-radius:8px;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);padding:0 12px;font-weight:600}
+.metro .mg-ex{grid-template-columns:auto 1fr}
 </style>
 <div class="wrap">
   <header class="top">
@@ -406,13 +427,13 @@ body.solo-open{overflow:hidden}
     <h2>曲庫</h2>
     <span>
       <button class="filebtn solobtn" id="soloOpen" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l4 18H5zM11.2 5 8 19h8l-1.1-5H12l-.8-3.4L15 6.4 14.6 5z"/></svg>節拍器</button>
-      <label class="filebtn primary" for="files">＋ 匯入歌曲</label>
+      <label class="filebtn primary" for="files">＋ 匯入</label>
       <input type="file" id="files" multiple hidden>
       <label class="filebtn" for="folder" id="folderBtn">匯入資料夾</label>
       <input type="file" id="folder" webkitdirectory multiple hidden>
     </span>
   </div>
-  <p class="libhint">可以匯入三種：打包好的歌曲 <b>.html</b>、整包 <b>.zip</b>，或一次選 song.json＋音檔＋鼓譜。歌會存在這台裝置上，下次直接點歌名就能練。</p>
+  <p class="libhint">歌曲可以匯入打包好的 <b>.html</b>、整包 <b>.zip</b>，或一次選 song.json＋音檔＋鼓譜。只選鼓譜（<b>.musicxml</b>、.mxl）會加成<b>技巧練習</b>：沒有音檔，跟著節拍器反覆練。都存在這台裝置上，下次直接點名稱就能練。</p>
   <div class="libmsg" id="libMsg" aria-live="polite"></div>
   <div class="songs" id="songs"></div>
   <p class="libstore" id="libStore"></p>
@@ -464,6 +485,10 @@ body.solo-open{overflow:hidden}
 </div>
 
 <div class="wrap main">
+  <section class="excard ex-only" id="exCard" aria-label="技巧練習">
+    <label class="exname"><span>名稱</span><input type="text" id="exName" maxlength="60" enterkeyhint="done" autocomplete="off" aria-label="技巧練習的名稱"></label>
+    <div class="exrec"><span class="exlab">練到 <b class="mono exbest">—</b><small class="exbest-at"></small></span><button type="button" class="tg exsave">記錄 ♩=<span class="excur"></span></button></div>
+  </section>
   <section class="panel" id="panelFollow">
     <div class="opts">
       <span class="viewsw" role="group" aria-label="顯示"><button id="v-score" aria-pressed="true">鼓譜</button><button id="v-map" aria-pressed="false">小節地圖</button></span>
@@ -482,19 +507,19 @@ body.solo-open{overflow:hidden}
     <div class="scorecard"><div id="score"><div class="msg">鼓譜載入中…</div></div></div>
     <div class="scoreopts">
       <label>播放時 <select id="followMode" aria-label="鼓譜跟隨方式"><option value="center">保持在中間</option><option value="page">翻頁</option><option value="off">不捲動</option></select></label><input type="checkbox" id="follow" checked hidden>
-      <label><input type="checkbox" id="secMarks" checked> 段落色條</label>
-      <label><input type="checkbox" id="timeMarks" checked> 譜上顯示時間</label>
-      <label class="filebtn" for="scoreFile">換一份譜</label><input type="file" id="scoreFile" hidden>
-      <label>譜的第一小節＝第 <input type="number" id="firstBar" value="0" step="1" inputmode="numeric"> 小節</label>
+      <label class="song-only"><input type="checkbox" id="secMarks" checked> 段落色條</label>
+      <label class="song-only"><input type="checkbox" id="timeMarks" checked> 譜上顯示時間</label>
+      <label class="filebtn song-only" for="scoreFile">換一份譜</label><input type="file" id="scoreFile" hidden>
+      <label class="song-only">譜的第一小節＝第 <input type="number" id="firstBar" value="0" step="1" inputmode="numeric"> 小節</label>
     </div>
   </section>
 
   <section id="mapWrap" hidden>
     <div class="maphead">
       <h2>小節地圖</h2>
-      <button class="edit-toggle" id="editBtn" aria-pressed="false">修正</button>
+      <button class="edit-toggle song-only" id="editBtn" aria-pressed="false">修正</button>
     </div>
-    <p class="mapnote">一行 4 小節，<span style="color:var(--brass);font-weight:700">▲</span> 是鼓有變化或過門。</p>
+    <p class="mapnote song-only">一行 4 小節，<span style="color:var(--brass);font-weight:700">▲</span> 是鼓有變化或過門。</p>
     <div class="edittools" id="editTools" hidden>
       <div class="row addrow">
         <span class="grp"><b>新增段落</b>第 <input type="number" id="addFrom" min="1" step="1" inputmode="numeric" aria-label="新段落從第幾小節"> 到 <input type="number" id="addTo" min="1" step="1" inputmode="numeric" aria-label="新段落到第幾小節"> 小節</span>
@@ -522,7 +547,7 @@ body.solo-open{overflow:hidden}
     </div>
     <div class="map" id="map"></div>
   </section>
-  <details class="adv">
+  <details class="adv song-only">
     <summary>對齊微調（換成原曲但小節對不上時用）</summary>
     <div class="row">
       <label for="offset">整體位移</label><input type="number" id="offset" step="10" value="0" inputmode="numeric"><span>毫秒（正數＝往後）</span>
@@ -537,7 +562,7 @@ body.solo-open{overflow:hidden}
 <div class="dock" id="dock">
   <div class="dock-in">
     <div class="metro" id="metroSheet" hidden>
-      <div class="mhead"><b>節拍器與速度</b><span class="mpresets" id="tempoPresets">
+      <div class="mhead"><b>節拍器與速度</b><span class="mpresets song-only" id="tempoPresets">
         <button data-pct="0.6">60%</button><button data-pct="0.75">75%</button><button data-pct="0.85">85%</button><button data-pct="1">原速</button></span></div>
       <div class="bpmrow">
         <button id="bpmM10" aria-label="慢 10">−10</button><button id="bpmM1" aria-label="慢 1">−1</button>
@@ -555,7 +580,7 @@ body.solo-open{overflow:hidden}
         </div>
         <label class="mvol"><span>節拍器音量</span><input type="range" id="metroVol" min="0" max="1" step="0.05" value="0.8" aria-label="節拍器音量"><output class="mono" id="metroVolPc">80%</output></label>
       </div>
-      <div class="mgroup mg-song">
+      <div class="mgroup mg-song song-only">
         <div class="mglab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3v11.3A3.5 3.5 0 1 0 11 17V8h7V3z"/></svg>歌曲</div>
         <div class="mtoggles">
           <button class="tg" id="tgMute" aria-pressed="false" aria-label="歌曲靜音">靜音</button>
@@ -582,7 +607,7 @@ body.solo-open{overflow:hidden}
       <span class="time mono" id="time">0:00 / 0:00</span>
     </div>
     <div class="dock-btns">
-      <button class="dbtn" id="secStart" aria-label="回到這一段的開頭"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 6v12l-9-6z"/></svg><span>段落頭</span></button>
+      <button class="dbtn song-only" id="secStart" aria-label="回到這一段的開頭"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 6v12l-9-6z"/></svg><span>段落頭</span></button>
       <button class="dbtn" id="prevBar" aria-label="前一小節"><svg viewBox="0 0 24 24"><path d="M11 6v12l-8-6zM21 6v12l-8-6z"/></svg><span>前一小節</span></button>
       <button class="play" id="play" aria-label="播放" disabled><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4l13 8-13 8z"/></svg></button>
       <button class="dbtn" id="nextBar" aria-label="後一小節"><svg viewBox="0 0 24 24"><path d="M3 6v12l8-6zM13 6v12l8-6z"/></svg><span>後一小節</span></button>
@@ -647,6 +672,8 @@ let pendingSeek = null;  // 還沒讀到 metadata 時的跳轉目標（iOS 不�
 let SONG = null, ORIG = null, B = [], BPB = 4, BAR1 = 0, LAST = 1, SECS = [], FILLS = new Set();
 let loaded = false, offset = 0, loop = null, actx = null, folderAudio = [];
 let editing = false;
+// v1.12 技巧練習（只有 PWA 會設）：沒有音檔，時鐘是 actx.currentTime。null＝一般的歌。見 transport.js 的 exRaw()
+let EX = null;
 const score = {osmd:null, ready:false, needsRender:false, stamps:[], step:0, firstBar:0, measAbs:[], measDur:[], lastTop:null, width:0};
 try { offset = (+localStorage.getItem('cb-offset') || 0)/1000; $('offset').value = Math.round(offset*1000); } catch(e){}
 
@@ -695,6 +722,10 @@ function setSong(s, orig){
 function renderHeader(){
   document.title = SONG.title ? `${SONG.title} · 爵士鼓練習室` : '爵士鼓練習室';
   $('songTitle').innerHTML = `${esc(SONG.title || '未命名')}<small id="songSub">${esc(SONG.artist || '')}${SONG.artist ? ' · ' : ''}爵士鼓練習室</small>`;
+  if (EX){   // v1.12 技巧練習：沒有原曲速度、段落、分析
+    $('facts').innerHTML = `<span class="fact chip-ex">技巧練習</span>` + [`${BPB}/4`, `${LAST} 小節`, '反覆循環'].map(c => `<span class="fact">${esc(c)}</span>`).join('');
+    $('analysisNote').textContent = ''; return;
+  }
   const barSec = (beatTime(BAR1 + BPB*Math.min(8, LAST)) - beatTime(BAR1))/Math.min(8, LAST);
   const chips = [`♩ = ${Math.round(SONG.bpm)}`, `${BPB}/4`, `1 小節 ≈ ${barSec.toFixed(2)} 秒`, `${LAST} 小節`, SONG.constantTempo === false ? '速度浮動' : '速度固定'];
   $('facts').innerHTML = chips.map(c => `<span class="fact">${esc(c)}</span>`).join('') + `<span class="fact ${SONG.edited ? 'chip-edit' : ''}">${SONG.edited ? '已修正' : '自動分析'}</span>`;
@@ -957,6 +988,8 @@ const libAll = () => libTx('readonly', st => st.getAll());
 const libGet = id => libTx('readonly', st => st.get(id));
 const libPut = rec => libTx('readwrite', st => st.put(rec));
 const libDel = id => libTx('readwrite', st => st.delete(id));
+// 讀出來改幾個欄位再存回去（同一個 transaction，不會蓋掉別的欄位）
+const libUpdate = (id, fn) => libTx('readwrite', st => { const q = st.get(id); q.onsuccess = () => { if (q.result){ fn(q.result); st.put(q.result); } }; });
 const songId = s => (s.title || '未命名') + '|' + Math.round(s.duration || 0);
 const MIME = {m4a: 'audio/mp4', aac: 'audio/aac', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', opus: 'audio/ogg', flac: 'audio/flac'};
 function setLibMsg(t, cls){ $('libMsg').innerHTML = t ? `<span class="${cls || ''}">${esc(t)}</span>` : ''; }
@@ -1010,15 +1043,18 @@ async function openFiles(list){
     files = files.filter(f => !/\.html?$/i.test(f.name));
     for (const z of files.filter(f => /\.zip$/i.test(f.name))) files = files.concat(await zipEntries(z));
     files = files.filter(f => !/\.zip$/i.test(f.name));
+    // v1.12：沒有 song.json、只有譜（.musicxml／.mxl／.xml）＝技巧練習，一個檔一筆
+    const scores = files.filter(f => /\.(musicxml|mxl|xml)$/i.test(f.name) && !/container\.xml$/i.test(f.name));
     if (files.some(f => /\.json$/i.test(f.name))) recs.push(await recFromFiles(files));
-    else if (files.length && !recs.length) throw new Error('選到的檔案裡沒有 song.json 或打包好的 .html');
+    else if (scores.length) for (const f of scores) recs.push(await recFromExercise(f));
+    else if (files.length && !recs.length) throw new Error('選到的檔案裡沒有 song.json、打包好的 .html 或 MusicXML 譜');
     try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch(e){}
     for (const r of recs){
-      const old = await libGet(r.id).catch(() => null); if (old){ r.added = old.added; r.last = old.last; }
+      const old = await libGet(r.id).catch(() => null); if (old){ r.added = old.added; r.last = old.last; if (r.kind === 'exercise') exKeep(r, old); }
       await libPut(r);
     }
     await renderLibrary();
-    setLibMsg(recs.length ? `已加入曲庫：${recs.map(r => r.title).join('、')}` : '沒有可以匯入的歌', 'ok');
+    setLibMsg(recs.length ? `已加入曲庫：${recs.map(r => r.title).join('、')}` : '沒有可以匯入的歌或練習', 'ok');
     if (recs.length === 1) openSong(recs[0].id);
   } catch(e){ setLibMsg(''); showErr('匯入失敗：' + e.message); }
 }
@@ -1029,9 +1065,15 @@ async function renderLibrary(){
   all.sort((a, b) => (b.last || 0) - (a.last || 0) || (b.added || 0) - (a.added || 0));
   const lastId = (() => { try { return localStorage.getItem('cb-last'); } catch(e){ return null; } })();
   const box = $('songs');
-  box.innerHTML = all.length ? '' : '<div class="empty">曲庫還是空的。按「＋ 匯入歌曲」加入第一首。</div>';
-  all.forEach(r => {
+  box.innerHTML = all.length ? '' : '<div class="empty">曲庫還是空的。按「＋ 匯入」加入第一首歌或技巧練習。</div>';
+  // v1.12：歌曲在前、技巧練習在後，有技巧練習時才分組加標題
+  const exs = all.filter(r => r.kind === 'exercise'), songs = all.filter(r => r.kind !== 'exercise');
+  const group = t => { const h = document.createElement('h3'); h.className = 'libgroup'; h.textContent = t; box.appendChild(h); };
+  if (exs.length && songs.length) group('歌曲');
+  songs.concat(exs).forEach((r, k) => {
+    if (exs.length && k === songs.length) group('技巧練習');
     const el = document.createElement('div'); el.className = 'song' + (r.id === lastId ? ' last' : '');
+    if (r.kind === 'exercise'){ el.classList.add('exrow'); el.innerHTML = exRowHtml(r); box.appendChild(el); return; }
     const meta = [r.bpm ? `♩=${Math.round(r.bpm)}` : '', r.lastBar ? `${r.lastBar} 小節` : '', r.sections ? `${r.sections} 段` : '',
                   r.stems ? `${r.stems.length} 軌` : (r.audio ? '' : '沒有音檔'), r.scoreText ? '' : '沒有鼓譜', r.last ? '上次 ' + new Date(r.last).toLocaleDateString('zh-TW') : ''].filter(Boolean).join(' · ');
     el.innerHTML = `<span class="t">${esc(r.title)}${r.artist ? ` <span style="font-weight:400;color:var(--muted);font-size:14px">${esc(r.artist)}</span>` : ''}</span>
@@ -1039,7 +1081,8 @@ async function renderLibrary(){
       <span class="go"><button data-open="${esc(r.id)}">練習</button><button class="del" data-del="${esc(r.id)}">${delArm === r.id ? '確定刪除' : '刪除'}</button></span>`;
     box.appendChild(el);
   });
-  try { const est = await navigator.storage.estimate(); $('libStore').textContent = `${all.length} 首 · 已用 ${(est.usage/1e6).toFixed(1)} MB`; } catch(e){ $('libStore').textContent = `${all.length} 首`; }
+  const cnt = `${songs.length} 首` + (exs.length ? ` · ${exs.length} 個技巧練習` : '');
+  try { const est = await navigator.storage.estimate(); $('libStore').textContent = `${cnt} · 已用 ${(est.usage/1e6).toFixed(1)} MB`; } catch(e){ $('libStore').textContent = cnt; }
 }
 $('songs').addEventListener('click', async e => {
   const o = e.target.closest('[data-open]'), d = e.target.closest('[data-del]');
@@ -1053,6 +1096,7 @@ $('songs').addEventListener('click', async e => {
 });
 function showLibrary(){
   try { audio.pause(); } catch(e){}
+  exLeave();
   $('practice').hidden = true; $('library').hidden = false; $('loader').hidden = true; document.body.classList.add('inlib');
   $('songTitle').innerHTML = '爵士鼓練習室<small id="songSub">跟著鼓譜數小節、節拍器練習</small>'; $('facts').innerHTML = ''; $('notice').hidden = true; $('mp3Warn').hidden = true;
   document.title = '爵士鼓練習室'; renderLibrary(); window.scrollTo(0, 0);
@@ -1061,6 +1105,8 @@ async function openSong(id){
   const r = await libGet(id).catch(() => null);
   if (!r){ showErr('找不到這首歌，可能已被刪除。'); return; }
   r.last = Date.now(); libPut(r).catch(() => {}); try { localStorage.setItem('cb-last', id); } catch(e){}
+  if (r.kind === 'exercise') return openExercise(r);
+  exLeave();
   $('library').hidden = true; $('practice').hidden = false; $('loader').hidden = false; document.body.classList.remove('inlib');
   applySongWithEdits(JSON.parse(r.json)); applyView();
   if (r.multi){ setupMulti(new File([r.multi.buf], r.multi.name || 'stems.m4a', {type: r.multi.type || 'audio/mp4'}), r.multi.layout); $('fileHint').textContent = `${Object.keys(r.multi.layout).length} 軌分軌（單一檔），按下方「混音」調整`; }
@@ -1127,12 +1173,45 @@ function click(accent){
   g.gain.setValueAtTime(peak, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
   o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 0.11);
 }
-function setPlayIcon(){ $('playIcon').innerHTML = audio.paused ? '<path d="M7 4l13 8-13 8z"/>' : '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'; $('play').setAttribute('aria-label', audio.paused ? '播放' : '暫停'); }
+/* v1.12 技巧練習的時鐘（EX 不是 null 時取代 <audio>）
+   練習時間用 60 BPM 當基準（一拍 1 秒，beats[] 是 0, 1, 2…），練習速度＝rate＝BPM/60，所以時間模型（barStart、pos、scorePos）照舊。
+   EX = {playing, t0, a0, rate, start, end}：actx 時間 a0 那一刻的練習時間是 t0，之後照 rate 往前走。
+   t0 不繞回（exRaw 一直往前），畫面上的位置才用 exWrap 繞回第 1 小節循環；節拍器用不繞回的時間對齊，循環時拍子不會斷。
+   start／end：循環的範圍（第 1 小節開頭到最後一小節結尾）；第 0 小節是預備拍，只有從頭開始時會經過 */
+const EX_LEAD = 0.1;   // 按下播放後多久才開始走（秒）：第一拍要排得進節拍器（metroAlign 只排還沒過去的拍子）
+function exRaw(){ return EX.playing && actx ? EX.t0 + Math.max(0, actx.currentTime - EX.a0) * EX.rate : EX.t0; }
+function exWrap(t){ return t < EX.end || EX.end <= EX.start ? t : EX.start + (t - EX.start) % (EX.end - EX.start); }
+function exLap(){ const t = exRaw(); return t < EX.end || EX.end <= EX.start ? 1 : Math.floor((t - EX.start) / (EX.end - EX.start)) + 1; }
+const isPaused = () => EX ? !EX.playing : audio.paused;
+const curRate = () => EX ? EX.rate : (audio.playbackRate || 1);
+function exSetPlaying(on){
+  if (on) ensureCtx();
+  if (!actx || on === EX.playing) return;
+  EX.t0 = exRaw(); EX.playing = on;
+  if (on){
+    EX.a0 = actx.currentTime + EX_LEAD;
+    if (!$('click').checked){ $('click').checked = true; $('click').dispatchEvent(new Event('change')); }   // 沒有歌可以聽，播放時節拍器一定要響
+  }
+  metroResync(); setPlayIcon(); holdScreen(on || metroRunning()); updateTempoUI(); tick(true);
+}
+// 改速度：從現在這一刻接著用新速度走，位置不跳
+function exSetRate(v){
+  EX.t0 = exRaw(); if (actx && EX.playing) EX.a0 = actx.currentTime;
+  EX.rate = v; metroResync(); updateTempoUI();
+  if (typeof exRateChanged === 'function') exRateChanged();
+}
+function setPlayIcon(){ const p = isPaused(); $('playIcon').innerHTML = p ? '<path d="M7 4l13 8-13 8z"/>' : '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>'; $('play').setAttribute('aria-label', p ? '播放' : '暫停'); }
 // 手機系：play() 被擋（iOS 常見）時把原因顯示出來
-function playAudio(){ const pr = audio.play(); if (PHONE && pr && pr.catch) pr.catch(err => showErr('播放失敗：' + err.message)); }
-function togglePlay(){ if (!loaded) return; ensureCtx(); if (audio.paused) playAudio(); else audio.pause(); }
+function playAudio(){ if (EX) return exSetPlaying(true); const pr = audio.play(); if (PHONE && pr && pr.catch) pr.catch(err => showErr('播放失敗：' + err.message)); }
+function togglePlay(){ if (!loaded) return; ensureCtx(); if (EX) exSetPlaying(!EX.playing); else if (audio.paused) playAudio(); else audio.pause(); }
 function seekTo(t, play){
   if (!loaded) return; t = Math.max(0, t);
+  if (EX){
+    EX.t0 = t; if (EX.playing && actx) EX.a0 = actx.currentTime + EX_LEAD;   // 跳轉後重新算第幾遍
+    lastBeatKey = null; metroResync();
+    if (play) exSetPlaying(true);
+    tick(true); return;
+  }
   if (!PHONE) audio.currentTime = t;
   // 手機系：還沒讀到 metadata（iOS 不預載）時先記在 pendingSeek，讀到再跳
   else if (audio.readyState < 1){ pendingSeek = t; } else { try { audio.currentTime = t; } catch(e){ pendingSeek = t; } }
@@ -1140,26 +1219,28 @@ function seekTo(t, play){
   if (play){ ensureCtx(); playAudio(); }
   tick(true);
 }
-function curTime(){ return pendingSeek !== null ? pendingSeek : (audio.currentTime || 0); }
+function curTime(){ if (EX) return exWrap(exRaw()); return pendingSeek !== null ? pendingSeek : (audio.currentTime || 0); }
 $('play').onclick = togglePlay;
 const nowBarNo = () => { const p = pos(curTime()); return Math.max(0, Math.min(LAST, p.bar)); };
 if (PHONE){  // 底部操作列
-  $('prevBar').onclick = () => { if (!loaded) return; const p = pos(curTime()); const target = p.frac > 0.12 || !audio.paused && p.frac > 0.25 ? p.bar : p.bar - 1; seekTo(barStart(Math.max(0, target)) + 0.01, !audio.paused); };
-  $('nextBar').onclick = () => { if (!loaded) return; seekTo(barStart(Math.min(LAST, nowBarNo() + 1)) + 0.01, !audio.paused); };
-  $('secStart').onclick = () => { if (!loaded) return; const s = secOf(nowBarNo()); seekTo(barStart(s ? s.from : nowBarNo()) + 0.01, !audio.paused); };
+  $('prevBar').onclick = () => { if (!loaded) return; const p = pos(curTime()); const target = p.frac > 0.12 || !isPaused() && p.frac > 0.25 ? p.bar : p.bar - 1; seekTo(barStart(Math.max(0, target)) + 0.01, !isPaused()); };
+  $('nextBar').onclick = () => { if (!loaded) return; seekTo(barStart(Math.min(LAST, nowBarNo() + 1)) + 0.01, !isPaused()); };
+  $('secStart').onclick = () => { if (!loaded) return; const s = secOf(nowBarNo()); seekTo(barStart(s ? s.from : nowBarNo()) + 0.01, !isPaused()); };
   $('clickBtn').onclick = () => { const open = $('metroSheet').hidden; $('metroSheet').hidden = !open; if (open){ const mx = document.getElementById('mixer'); if (mx) mx.hidden = true; updateTempoUI(); } };
 }
 /* ---------- 節拍器與速度 ---------- */
 const songBpm = () => (SONG && SONG.bpm) || 100;
-function curBpm(){ return Math.round(songBpm() * (audio.playbackRate || 1)); }
+function curBpm(){ return Math.round(songBpm() * curRate()); }
 function setTempo(bpm){
   bpm = Math.max(30, Math.min(260, Math.round(+bpm || songBpm())));
-  setRate(Math.max(0.25, Math.min(2, bpm / songBpm()))); updateTempoUI();
+  const r = bpm / songBpm();
+  setRate(EX ? r : Math.max(0.25, Math.min(2, r))); updateTempoUI();   // 技巧練習沒有原曲，30～260 都可以
 }
 function updateTempoUI(){
   if (document.activeElement !== $('bpmIn')) $('bpmIn').value = curBpm();
   const pct = Math.round((audio.playbackRate || 1) * 100);
-  $('bpmNote').textContent = `原曲 ${Math.round(songBpm())} BPM · 目前 ${pct}%` + (!audio.muted && (pct < 50 || pct > 150) ? ' · 速度差很多時歌曲音質會變差，可以開「歌曲靜音」' : '');
+  if (EX) $('bpmNote').textContent = typeof exNote === 'function' ? exNote() : '技巧練習';
+  else $('bpmNote').textContent = `原曲 ${Math.round(songBpm())} BPM · 目前 ${pct}%` + (!audio.muted && (pct < 50 || pct > 150) ? ' · 速度差很多時歌曲音質會變差，可以開「歌曲靜音」' : '');
   $('tgClick').setAttribute('aria-pressed', $('click').checked); $('tgClick').textContent = $('click').checked ? '■ 停止' : '▶ 開始';
   $('tgMute').setAttribute('aria-pressed', !!audio.muted); $('clickBtn').setAttribute('aria-pressed', $('click').checked);
   document.querySelectorAll('#tempoPresets [data-pct]').forEach(b => b.setAttribute('aria-pressed', Math.abs(+b.dataset.pct - (audio.playbackRate || 1)) < 0.005));
@@ -1247,7 +1328,7 @@ const MET = {next: null, idx: 0, last: null, d: [], tRef: null, rate: 1, q: [], 
 const metroRunning = () => MET.next !== null;
 // 方便除錯、測試：running＝正在響；locked＝正在對齊歌曲；now()＝歌曲時間和 AudioContext 時間；phase(t)＝歌曲時間 t 離最近一拍差幾拍
 window.__cbMetro = {get running(){ return metroRunning(); }, get locked(){ return metroLock() !== null; },
-  now: () => ({t: curTime(), a: actx ? actx.currentTime : 0, rate: audio.playbackRate || 1, paused: audio.paused}),
+  now: () => ({t: curTime(), a: actx ? actx.currentTime : 0, rate: curRate(), paused: isPaused()}),
   phase(t){ const x = beatIdx(t - offset); return x - Math.round(x); }, get pat(){ return metroPat(); }};
 // v1.11 音高：滑桿調輕拍的頻率，重拍固定是 1.6 倍（預設 1000／1600Hz，和以前一樣）。
 // 滑桿是半音（0～24），500Hz 起每 12 格高一個八度：0＝500、12＝1000、24＝2000Hz，這樣拖起來高低變化平均。
@@ -1322,14 +1403,17 @@ function metroBeatsTick(){
   if (cur) metroBeatsShow(cur.i);
 }
 // 歌曲跳轉、播放、暫停、改速度時重新量換算
-function metroResync(){ MET.d = []; MET.tRef = curTime(); MET.rate = audio.playbackRate || 1; }
+function metroResync(){ MET.d = []; MET.tRef = curTime(); MET.rate = curRate(); }
 ['play', 'pause', 'seeking', 'seeked', 'ratechange'].forEach(ev => audio.addEventListener(ev, metroResync));
 // 歌曲在播、時間真的在走時，回傳換算值 d（歌曲時間 s 在 actx 時間 (s + d) / rate 響）；否則 null
 function metroLock(){
+  // 技巧練習：時鐘本來就是 actx，換算值直接算得出來（練習時間 s 在 actx 時間 (s + a0×rate − t0) / rate 響），不用量
+  if (EX) return EX.playing && actx ? EX.a0 * EX.rate - EX.t0 : null;
   if (!SONG || !loaded || audio.paused || B.length < 2 || MET.d.length < 5) return null;
   const a = MET.d.slice().sort((x, y) => x - y); return a[a.length >> 1];
 }
 function metroSample(){
+  if (EX) return;
   if (!SONG || !loaded || audio.paused || !actx){ return; }
   const t = curTime(), rate = audio.playbackRate || 1;
   if (rate !== MET.rate) metroResync();
@@ -1338,12 +1422,12 @@ function metroSample(){
   MET.d.push(actx.currentTime * rate - t); if (MET.d.length > MET_SAMPLES) MET.d.shift();
 }
 function metroStart(){ ensureCtx(); if (!actx || metroRunning()) return; MET.next = actx.currentTime + 0.05; MET.idx = 0; MET.last = null; MET.q = []; holdScreen(true); }
-function metroStop(){ if (!metroRunning()) return; MET.next = null; MET.last = null; if (audio.paused) holdScreen(false); }
+function metroStop(){ if (!metroRunning()) return; MET.next = null; MET.last = null; if (isPaused()) holdScreen(false); }
 // 把還沒排的下一拍移到歌曲的拍子上：和上一拍隔半拍到一拍半（不會疊兩下、不會空一拍），而且還沒過去。
 // 每個畫面都做（不是等到要排的那一刻才做），所以一拿到換算值就能對齊；
 // 符合的那一拍剛好已經過去時，這一拍先照自己的速度響，下一拍再對齊。回傳歌曲的拍長（秒）
 function metroAlign(d, now){
-  const rate = audio.playbackRate || 1, at = k => (beatTime(k) + offset + d) / rate;
+  const rate = curRate(), at = k => (beatTime(k) + offset + d) / rate;
   const k0 = Math.round(beatIdx(MET.next * rate - d - offset)), gap = at(k0 + 1) - at(k0);
   const lo = Math.max(now + 0.005, MET.last !== null ? MET.last + 0.5 * gap : now), hi = MET.last !== null ? MET.last + 1.5 * gap : Infinity;
   let best = null;
@@ -1464,6 +1548,127 @@ $('soloVol').addEventListener('input', () => {   // 和練習頁的節拍器音�
 });
 window.__cbSolo = {get running(){ return soloRunning(); }, get bpm(){ return soloBpmV; }, get bpb(){ return soloBpbV; }, get pat(){ return soloPat(); }, get size(){ return soloSizeV; }};   // 方便除錯、測試
 soloUI();
+/* ---------- 技巧練習（v1.12，只有 PWA） ---------- */
+// exercises/ 做出來的 MusicXML（或任何一份鼓譜）匯入成「技巧練習」：沒有音檔，游標跟著節拍器的 BPM 走、反覆循環。
+// 時鐘在 transport.js（EX、exRaw()…），這裡是匯入、開啟、名稱、BPM 記錄。
+// 和歌曲放在同一個 IndexedDB store（cb-library／songs），用 kind: 'exercise' 分開，不用升 DB 版本。紀錄：
+//   {id: 'ex:<檔名>', kind: 'exercise', title, origTitle（譜裡的名稱）, bpb, bars, scoreText, scoreName,
+//    bpm（上次的練習速度，自動存）, bpmLog: [{bpm, at}]（按「記錄」才存，最後一筆＝目前練到的）, added, last}
+// 練習速度（bpm）和記錄（bpmLog）分開存，所以練習時調速度不會蓋掉記錄。
+const EX_DEFAULT_BPM = 80;
+function exParse(text, name){
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if (doc.getElementsByTagName('parsererror').length) throw new Error(`${name} 讀不懂，請確認是 MusicXML`);
+  const part = doc.querySelector('score-partwise > part');
+  if (!part) throw new Error(`${name} 不是 MusicXML 的鼓譜（找不到 part）`);
+  const bars = [...part.children].filter(e => e.tagName === 'measure').length;
+  if (!bars) throw new Error(`${name} 裡沒有小節`);
+  const tm = doc.querySelector('time'), num = sel => { const e = tm && tm.querySelector(sel); return e ? +e.textContent.trim() : NaN; };
+  const beats = tm ? num('beats') : 4, bt = tm ? num('beat-type') : 4;
+  if (!(Number.isInteger(beats) && beats >= 1 && beats <= 12) || bt !== 4) throw new Error(`${name} 的拍號是 ${tm ? tm.textContent.trim().replace(/\s+/g, '/') : '?'}，目前只支援 x/4 拍`);
+  const txt = sel => { const e = doc.querySelector(sel); return e ? e.textContent.trim() : ''; };
+  return {title: txt('work > work-title') || txt('movement-title') || name.replace(/\.[^.]+$/, ''), bpb: beats, bars};
+}
+async function recFromExercise(f){
+  const text = /\.mxl$/i.test(f.name) ? await mxlText(f) : await f.text();
+  if (!text) throw new Error(`${f.name} 解不開`);
+  const x = exParse(text, f.name);
+  return {id: 'ex:' + f.name.replace(/\.[^.]+$/, ''), kind: 'exercise', title: x.title, origTitle: x.title, bpb: x.bpb, bars: x.bars,
+          scoreText: text, scoreName: f.name, bpm: null, bpmLog: [], added: Date.now(), last: 0};
+}
+// 重新匯入同一個檔（例如譜改過）：換掉譜，改過的名稱、練習速度、記錄都留著
+function exKeep(r, old){
+  if (old.kind !== 'exercise') return;
+  if (old.title && old.title !== old.origTitle) r.title = old.title;
+  r.bpm = old.bpm ?? null; r.bpmLog = old.bpmLog || [];
+}
+const exBest = r => r && r.bpmLog && r.bpmLog.length ? r.bpmLog[r.bpmLog.length - 1] : null;
+const exDate = at => new Date(at).toLocaleDateString('zh-TW', {month: 'numeric', day: 'numeric'});
+function exRowHtml(r){
+  const b = exBest(r);
+  const meta = [`${r.bpb}/4`, `${r.bars} 小節`, b ? `練到 ♩=${b.bpm}（${exDate(b.at)}）` : '還沒記錄速度',
+                r.last ? '上次 ' + new Date(r.last).toLocaleDateString('zh-TW') : ''].filter(Boolean).join(' · ');
+  return `<span class="t">${esc(r.title)} <span class="extag">技巧練習</span></span>
+    <span class="m">${esc(meta)}</span>
+    <span class="go"><button data-open="${esc(r.id)}">練習</button><button class="del" data-del="${esc(r.id)}">${delArm === r.id ? '確定刪除' : '刪除'}</button></span>`;
+}
+// 練習用的 song：60 BPM 基準（一拍 1 秒），第 0 小節是預備拍，所以 bar1Beat＝每小節拍數。beats[] 多留幾拍，超出時 beatTime() 會外插
+function exSong(r){
+  const n = (r.bars + 2) * r.bpb + 8;
+  return {title: r.title, bpm: 60, beats: Array.from({length: n}, (_, i) => i), beatsPerBar: r.bpb, bar1Beat: r.bpb, lastBar: r.bars,
+          duration: (r.bars + 1) * r.bpb, sections: [], fills: [], score: {firstBar: 1}, soundStart: 0, constantTempo: true};
+}
+function openExercise(r){
+  exLeave();   // 從另一個練習直接開（平常會先回曲庫）
+  try { audio.pause(); } catch(e){}
+  teardownStems(); loop = null;
+  $('library').hidden = true; $('practice').hidden = false; $('loader').hidden = false;
+  document.body.classList.remove('inlib'); document.body.classList.add('ex');
+  $('notice').hidden = true; $('mp3Warn').hidden = true; $('fileHint').textContent = ''; $('audioSel').hidden = true;
+  const b = exBest(r);
+  EX = {id: r.id, rec: r, playing: false, t0: 0, a0: 0, rate: Math.max(30, Math.min(260, r.bpm || (b && b.bpm) || EX_DEFAULT_BPM)) / 60, start: 0, end: 0};
+  setSong(exSong(r));
+  EX.start = barStart(1); EX.end = barStart(LAST + 1);
+  loaded = true; $('play').disabled = false; $('seek').max = EX.end; $('seek').disabled = false;
+  applyView(); exRender(); updateTempoUI(); setPlayIcon(); tick(true);
+  initScore(async () => r.scoreText);
+  window.scrollTo(0, 0);
+}
+// 回到曲庫、改開歌曲時：停下來、存速度。節拍器也停（它的速度跟著這個練習，留著響會突然變成別的速度）
+function exLeave(){
+  if (!EX) return;
+  if (EX.playing) exSetPlaying(false);
+  exFlushBpm();
+  if ($('click').checked){ $('click').checked = false; $('click').dispatchEvent(new Event('change')); }
+  EX = null; loaded = false; document.body.classList.remove('ex');
+  setPlayIcon(); updateTempoUI();
+}
+function exNote(){ const b = exBest(EX.rec); return b ? `技巧練習 · 練到 ♩=${b.bpm}（${exDate(b.at)}）` : '技巧練習 · 還沒記錄練到的速度'; }
+function exRender(){
+  if (!EX) return;
+  const b = exBest(EX.rec);
+  if (document.activeElement !== $('exName')) $('exName').value = EX.rec.title;
+  document.querySelectorAll('.exbest').forEach(e => { e.textContent = b ? `♩=${b.bpm}` : '—'; });
+  document.querySelectorAll('.exbest-at').forEach(e => { e.textContent = b ? `（${exDate(b.at)}）` : ''; });
+  document.querySelectorAll('.excur').forEach(e => { e.textContent = curBpm(); });
+}
+// 練習速度：改了 0.8 秒沒再動才存（長按加減時不要每一格都寫）；離開、切到背景時馬上存
+let exBpmT = null;
+function exRateChanged(){ exRender(); clearTimeout(exBpmT); exBpmT = setTimeout(exFlushBpm, 800); }
+function exFlushBpm(){
+  if (exBpmT === null || !EX) return;
+  clearTimeout(exBpmT); exBpmT = null;
+  const bpm = curBpm(); EX.rec.bpm = bpm;
+  libUpdate(EX.id, r => { r.bpm = bpm; }).catch(() => {});
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') exFlushBpm(); });
+window.addEventListener('pagehide', exFlushBpm);
+// 節拍器面板（調速度的地方）也放一份記錄按鈕：面板蓋住下半頁時，上面的卡片可能已經捲走了
+$('metroSheet').querySelector('.mg-song').insertAdjacentHTML('beforebegin',
+  `<div class="mgroup mg-ex ex-only"><div class="mglab">練到</div><div class="mtoggles"><b class="mono exbest">—</b><small class="exbest-at"></small>` +
+  `<button type="button" class="tg exsave">記錄 ♩=<span class="excur"></span></button></div></div>`);
+document.querySelectorAll('.exsave').forEach(btn => btn.addEventListener('click', async () => {
+  if (!EX) return;
+  const e = {bpm: curBpm(), at: Date.now()}, id = EX.id;
+  try { await libUpdate(id, r => { r.bpmLog = (r.bpmLog || []).concat(e); }); }
+  catch(err){ showErr('記錄失敗：' + err.message); return; }
+  if (!EX || EX.id !== id) return;
+  EX.rec.bpmLog = (EX.rec.bpmLog || []).concat(e);
+  exRender(); updateTempoUI();
+  document.querySelectorAll('.exsave').forEach(b => { b.classList.add('saved'); setTimeout(() => b.classList.remove('saved'), 900); });
+}));
+// 名稱：改完（Enter 或離開輸入框）就存；清空＝改回譜裡的名稱
+$('exName').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+$('exName').addEventListener('change', async () => {
+  if (!EX) return;
+  const v = $('exName').value.trim().slice(0, 60) || EX.rec.origTitle, id = EX.id;
+  $('exName').value = v;
+  if (v === EX.rec.title) return;
+  EX.rec.title = v; SONG.title = v; renderHeader();
+  try { await libUpdate(id, r => { r.title = v; }); } catch(err){ showErr('名稱沒有存起來：' + err.message); }
+});
+window.__cbEx = {get on(){ return !!EX; }, get playing(){ return !!(EX && EX.playing); }, get rate(){ return EX ? EX.rate : null; },
+  get lap(){ return EX ? exLap() : null; }, get t(){ return EX ? curTime() : null; }, get range(){ return EX ? [EX.start, EX.end] : null; }};   // 方便除錯、測試
 /* ---------- 分軌混音器 ---------- */
 const STEM_LABEL = {drums:'鼓', bass:'貝斯', vocals:'人聲', other:'其他樂器', guitar:'吉他', piano:'鋼琴', original:'原曲'};
 const STEM_ORDER = ['drums', 'bass', 'vocals', 'guitar', 'piano', 'other', 'original'];
@@ -1937,11 +2142,11 @@ if (PHONE){  // 手機系：播放時保持螢幕亮著
   audio.onplay = () => { setPlayIcon(); holdScreen(true); };
   const metroFree = () => typeof MET !== 'undefined' && metroRunning();   // 節拍器在響時也要保持螢幕亮著
   audio.onpause = () => { setPlayIcon(); holdScreen(metroFree()); };
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!audio.paused || metroFree())) holdScreen(true); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!isPaused() || metroFree())) holdScreen(true); });
 } else audio.onplay = audio.onpause = setPlayIcon;
 audio.onended = () => { setPlayIcon(); };
 $('seek').addEventListener('input', e => seekTo(+e.target.value));
-const setRate = v => { audio.playbackRate = +v; $('rate').value = v; };
+const setRate = v => { if (EX) return exSetRate(+v); audio.playbackRate = +v; $('rate').value = v; };
 $('rate').onchange = e => setRate(e.target.value);
 // 對齊位移：桌機版、手機版存在 localStorage（cb-offset）；PWA、打包檔跟著歌存在 SONG.offsetMs
 $('offset').onchange = e => {
@@ -1957,12 +2162,12 @@ const phr = [...document.querySelectorAll('#phrase span')];
 function tick(force){
   if (!SONG) return;
   const t = curTime();
-  if (loop && !audio.paused && t >= loop.b) audio.currentTime = loop.a;
-  $('seek').value = t; $('time').textContent = fmt(t) + ' / ' + fmt(audio.duration || SONG.duration);
+  if (loop && !EX && !audio.paused && t >= loop.b) audio.currentTime = loop.a;
+  $('seek').value = t; $('time').textContent = EX ? `${curBpm()} BPM · 第 ${exLap()} 遍` : fmt(t) + ' / ' + fmt(audio.duration || SONG.duration);
   const {bar, beat} = pos(t);
   const key = bar + ':' + beat;
   if (key !== lastBeatKey || force){
-    if (!PHONE && !force && !audio.paused && lastBeatKey !== null && $('click').checked && bar >= 0 && bar <= LAST && (beat === 1 || !$('clickOne').checked)) click(beat === 1);
+    if (!PHONE && !force && !isPaused() && lastBeatKey !== null && $('click').checked && bar >= 0 && bar <= LAST && (beat === 1 || !$('clickOne').checked)) click(beat === 1);
     lastBeatKey = key;
     lights.forEach((l, i) => l.classList.toggle('on', bar >= 0 && bar <= LAST && i === beat - 1));
     const inSong = bar >= 1 && bar <= LAST;
@@ -1972,6 +2177,7 @@ function tick(force){
     if (bar < 0 || (bar === 0 && t < pre)){ $('barNum').textContent = '–'; $('beatLab').textContent = loaded ? '還沒進拍' : '尚未播放'; $('secName').innerHTML = '段落：<b>—</b>'; }
     else if (bar === 0){ $('barNum').textContent = '0'; $('beatLab').textContent = `第 ${beat} 拍 · 預備拍`; $('secName').innerHTML = '段落：<b>預備拍</b>'; }
     else if (bar > LAST){ $('barNum').textContent = '–'; $('beatLab').textContent = '歌曲結束'; $('secName').innerHTML = '段落：<b>—</b>'; }
+    else if (EX){ $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = `<b>技巧練習</b> · 第 ${exLap()} 遍（共 ${LAST} 小節）`; }
     else { const s = secOf(bar); $('barNum').textContent = bar; $('beatLab').textContent = `第 ${beat} 拍`; $('secName').innerHTML = s ? `段落：<b>${esc(secLabel(s))}</b> · 這段第 ${bar - s.from + 1}/${s.to - s.from + 1} 小節` : '段落：<b>—</b>'; }
     if (nowBar !== bar){ if (barEls[nowBar]) barEls[nowBar].classList.remove('now'); if (barEls[bar]) barEls[bar].classList.add('now'); nowBar = bar; }
   }
@@ -2086,6 +2292,7 @@ async function initScore(src){
     const o = new opensheetmusicdisplay.OpenSheetMusicDisplay(host, {
       autoResize: false, backend: 'svg', drawTitle: false, drawSubtitle: false, drawComposer: false, drawLyricist: false, drawCredits: false, drawPartNames: false,
       drawMeasureNumbers: true, measureNumberInterval: 1, useXMLMeasureNumbers: true, followCursor: false,
+      percussionOneLineCutoff: 0,   // v1.12：只有小鼓、大鼓（少於 3 種打擊樂器）時 OSMD 預設畫成一條線；在 MusicXML 寫 <staff-lines>5 沒用
       cursorsOptions: [{type: 3, color: '#f0b429', alpha: .22, follow: false}, {type: 0, color: '#c2423a', alpha: .5, follow: false}]
     });
     await o.load(data);
@@ -2113,7 +2320,7 @@ function renderScore(){
     score.measDur = o.Sheet.SourceMeasures.map(m => m.Duration.RealValue);
     score.ready = true;
     drawSectionMarks();
-    syncScore(audio.currentTime || 0, true);
+    syncScore(curTime(), true);
   } catch(e){ console.error(e); scoreMsg('鼓譜畫不出來（' + esc((e && e.message) || e) + '）'); }
 }
 function cursorLayer(){
@@ -2143,7 +2350,7 @@ function drawSectionMarks(){
       }
     }
   });
-  if ($('timeMarks').checked){
+  if ($('timeMarks').checked && !EX){   // 技巧練習的時間跟著 BPM 變，標了沒意義
     // 每小節開頭、段落色條上方標出歌曲時間；段落第一小節的時間寫在段落名稱裡
     for (let i = 0; i < n; i++){
       if (labW[i]) continue;
@@ -2222,7 +2429,7 @@ function requestScroll(where){
 }
 function followScroll(){
   if (!PHONE) return followScrollDesktop();
-  const fm = followMode(); if (fm === 'off' || audio.paused) return;
+  const fm = followMode(); if (fm === 'off' || isPaused()) return;
   const el = score.osmd.cursors[0].cursorElement; if (!el) return;
   if (el.style.top === score.lastTop) return;   // 只在換行時捲動
   score.lastTop = el.style.top;
@@ -2241,7 +2448,7 @@ function pageFlipDue(){
 window.__cbScore = {lines: staffLines, cursor: cursorRect, band: scoreViewBand, showTop: (L, i) => lineShowTop(L, i), get osmd(){ return score.osmd; }, separateVoiceRests};   // 方便除錯、測試
 // 桌機版：「播放時自動捲動」打勾時，游標超出畫面才捲
 function followScrollDesktop(){
-  if (!$('follow').checked || audio.paused) return;
+  if (!$('follow').checked || isPaused()) return;
   const el = score.osmd.cursors[0].cursorElement; if (!el) return;
   if (el.style.top === score.lastTop) return;
   score.lastTop = el.style.top;
@@ -2258,7 +2465,7 @@ function keepScoreInView(){
 }
 if (PHONE){  // 跟隨方式（置中／翻頁／不捲動）
   try { const v = localStorage.getItem('cb-follow'); if (v) $('followMode').value = v; } catch(e){}
-  $('followMode').onchange = () => { try { localStorage.setItem('cb-follow', followMode()); } catch(e){} score.lastTop = null; if (!audio.paused) followScroll(); };
+  $('followMode').onchange = () => { try { localStorage.setItem('cb-follow', followMode()); } catch(e){} score.lastTop = null; if (!isPaused()) followScroll(); };
 }
 $('score').addEventListener('click', e => {
   if (!score.ready) return; const layer = cursorLayer(); if (!layer) return;
