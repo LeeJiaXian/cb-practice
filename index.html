@@ -430,6 +430,11 @@ body:not(.combo) .combo-only{display:none !important}
 .combo-item .t{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .combo-item small{color:var(--muted);font-size:12px}
 .combo-item.off{opacity:.45;cursor:not-allowed}
+/* v1.16：技巧練習依技巧分組的小標題（曲庫、組合的勾選清單） */
+.libgroup{display:flex;align-items:baseline;gap:6px;margin:8px 2px -2px;font-size:13.5px;font-weight:700;color:var(--muted);letter-spacing:.03em}
+.libgroup:first-child{margin-top:0}
+.libgroup small{font-family:var(--f-mono);font-weight:400;font-size:12px}
+.combo-group{position:sticky;top:0;z-index:1;padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--muted);background:var(--card);border-bottom:1px solid var(--rule)}
 .combo-err{color:var(--bad);font-size:13.5px;margin:0;min-height:1em}
 .combo-foot{display:flex;justify-content:flex-end;gap:8px}
 @media (max-width:440px){
@@ -445,6 +450,34 @@ body:not(.combo) .combo-only{display:none !important}
 .combo-reps button[aria-pressed=true]{border-color:var(--brass);background:var(--brass-soft)}
 .combo-auto{display:inline-flex;align-items:center;gap:8px;min-height:40px;font-weight:600;color:var(--ink)}
 .combo-auto input{width:22px;height:22px;accent-color:var(--brass)}
+/* v1.17：標籤。固定的（auto，從名稱算出來）銅色外框；自由的（free，自己加的）實心底色 */
+.tagbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tagbar button{min-height:36px;border-radius:999px;border:1.5px solid var(--rule);background:var(--card);color:var(--ink);font:inherit;font-size:14px;font-weight:600;padding:0 12px}
+.tagbar button.auto{border-color:color-mix(in srgb,var(--brass) 55%,transparent)}
+.tagbar button.free{background:color-mix(in srgb,var(--ink) 9%,var(--card))}
+.tagbar button small{font-family:var(--f-mono);font-weight:400;font-size:11.5px;color:var(--muted);margin-left:5px}
+.tagbar button[aria-pressed=true]{background:var(--brass);border-color:var(--brass);color:var(--card)}
+.tagbar button[aria-pressed=true] small{color:inherit;opacity:.8}
+.tagchip{display:inline-flex;align-items:center;gap:2px;font-size:12px;font-weight:600;line-height:1.3;border-radius:999px;padding:2px 9px;border:1px solid transparent;white-space:nowrap}
+.tagchip.auto{border-color:color-mix(in srgb,var(--brass) 55%,transparent);color:var(--brass)}
+.tagchip.free{background:color-mix(in srgb,var(--ink) 12%,transparent);color:var(--ink)}
+.song .tags{grid-column:1;display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.song.exrow.hastags .go{grid-row:1/4}
+.extags{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.extaglist{display:contents}
+.extags .tagchip{font-size:14px;min-height:34px;padding:0 4px 0 12px}
+.extags .tagchip button{border:0;background:transparent;color:inherit;font:inherit;font-size:17px;line-height:1;min-width:30px;min-height:30px;border-radius:999px;opacity:.7}
+.extags .tagchip.hidden-tag{background:transparent;opacity:.5;text-decoration:line-through;padding:0 12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.extags input{flex:0 1 150px;min-width:110px;font:inherit;font-size:14px;color:var(--ink);background:var(--paper);border:1px dashed var(--rule);border-radius:999px;padding:0 12px;min-height:34px}
+body.combo .ex-single{display:none !important}
+.combo-filter{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;justify-content:space-between}
+.combo-filter #comboTagBar{flex:1 1 auto;min-width:0}
+.combo-filter .filebtn[hidden]{display:none}
+.combo-none{color:var(--muted);font-size:13.5px;margin:0}
+.combo-list [hidden]{display:none}
+@media (max-width:440px){
+  .song.exrow.hastags .go{grid-row:auto;grid-column:1/3;justify-content:flex-end}
+}
 </style>
 <div class="wrap">
   <header class="top">
@@ -516,6 +549,8 @@ body:not(.combo) .combo-only{display:none !important}
     <div class="combo-head"><b id="comboDlgTitle">新組合</b><button type="button" class="solo-x" id="comboClose" aria-label="關閉">✕</button></div>
     <label class="exname"><span>名稱</span><input type="text" id="comboName" maxlength="60" enterkeyhint="done" autocomplete="off" aria-label="組合練習的名稱"></label>
     <p class="combo-hint">勾選要練的技巧練習。練習時從裡面隨機抽 8 行（每行 4 小節）接成一份譜，練習頁的「🎲 換一組」可以重抽。</p>
+    <div class="combo-filter"><div id="comboTagBar"></div><button type="button" class="filebtn" id="comboPickShown">勾選顯示的</button></div>
+    <p class="combo-none" id="comboNone" hidden>沒有同時有這些標籤的練習。</p>
     <div class="combo-list" id="comboList" role="group" aria-label="技巧練習"></div>
     <div class="combo-reps mpresets" id="comboDlgReps" role="group" aria-label="每行連續練幾遍"><span class="exlab">每行連續練</span><button type="button" data-reps="1" aria-pressed="true">1</button><button type="button" data-reps="2">2</button><button type="button" data-reps="3">3</button><button type="button" data-reps="4">4</button><span class="exlab">遍再換下一行</span></div>
     <p class="combo-err" id="comboErr" aria-live="polite"></p>
@@ -542,6 +577,7 @@ body:not(.combo) .combo-only{display:none !important}
 <div class="wrap main">
   <section class="excard ex-only" id="exCard" aria-label="技巧練習">
     <label class="exname"><span>名稱</span><input type="text" id="exName" maxlength="60" enterkeyhint="done" autocomplete="off" aria-label="技巧練習的名稱"></label>
+    <div class="extags ex-single"><span class="exlab">標籤</span><span class="extaglist" id="exTagList"></span><input type="text" id="exTagNew" maxlength="60" list="exTagOpts" placeholder="＋ 新標籤" enterkeyhint="done" autocomplete="off" aria-label="新增標籤（可以用逗號分開，一次加好幾個）"><datalist id="exTagOpts"></datalist></div>
     <div class="exrec"><span class="exlab">練到 <b class="mono exbest">—</b><small class="exbest-at"></small></span><button type="button" class="tg exsave">記錄 ♩=<span class="excur"></span></button><button type="button" class="tg combo-only" id="comboShuffle">🎲 換一組</button></div>
     <div class="combo-opts combo-only">
       <span class="combo-reps mpresets" id="comboReps" role="group" aria-label="每行連續練幾遍"><span class="exlab">每行</span><button type="button" data-reps="1">1</button><button type="button" data-reps="2">2</button><button type="button" data-reps="3">3</button><button type="button" data-reps="4">4</button><span class="exlab">遍</span></span>
@@ -1146,9 +1182,9 @@ async function renderLibrary(){
                    combo: by.ex.length ? '還沒有組合練習。按「＋ 新組合」挑幾個技巧練習，練習時從裡面隨機抽句子接成一份譜。' : '先到「技巧練習」匯入鼓譜，才能設計組合練習。'}[libTab];
     box.insertAdjacentHTML('beforeend', `<div class="empty">${esc(empty)}</div>`);
   }
-  list.forEach(r => {
+  const addRow = r => {
     const el = document.createElement('div'); el.className = 'song' + (r.id === lastId ? ' last' : '');
-    if (r.kind === 'exercise'){ el.classList.add('exrow'); el.innerHTML = exRowHtml(r); box.appendChild(el); return; }
+    if (r.kind === 'exercise'){ el.classList.add('exrow'); el.classList.toggle('hastags', exTags(r).length > 0); el.innerHTML = exRowHtml(r); box.appendChild(el); return; }
     if (r.kind === 'combo'){ el.classList.add('exrow', 'comborow'); el.innerHTML = comboRowHtml(r, exById); box.appendChild(el); return; }
     const meta = [r.bpm ? `♩=${Math.round(r.bpm)}` : '', r.lastBar ? `${r.lastBar} 小節` : '', r.sections ? `${r.sections} 段` : '',
                   r.stems ? `${r.stems.length} 軌` : (r.audio ? '' : '沒有音檔'), r.scoreText ? '' : '沒有鼓譜', r.last ? '上次 ' + new Date(r.last).toLocaleDateString('zh-TW') : ''].filter(Boolean).join(' · ');
@@ -1156,13 +1192,32 @@ async function renderLibrary(){
       <span class="m">${esc(meta)}</span>
       <span class="go"><button data-open="${esc(r.id)}">練習</button><button class="del" data-del="${esc(r.id)}">${delArm === r.id ? '確定刪除' : '刪除'}</button></span>`;
     box.appendChild(el);
-  });
+  };
+  // v1.16：技巧練習依技巧分組（exGroups()，exercise.js），每組一個小標題；其他分頁照舊依最近練習
+  // v1.17：上面一排標籤可以篩選（複選＝交集，exTagSel 存在 cb-ex-tags），篩完再分組
+  if (libTab === 'ex' && list.length){
+    const have = new Set(exTagStats(list).map(x => x.t));
+    if ([...exTagSel].some(t => !have.has(t))){ exTagSel = new Set([...exTagSel].filter(t => have.has(t))); exTagSelSave(); }
+    box.insertAdjacentHTML('beforeend', exTagBarHtml(list, exTagSel));
+    const shown = list.filter(r => exHas(r, exTagSel));
+    if (!shown.length) box.insertAdjacentHTML('beforeend', '<div class="empty">沒有同時有這些標籤的練習。</div>');
+    exGroups(shown).forEach(g => {
+      if (g.name !== null) box.insertAdjacentHTML('beforeend', `<div class="libgroup">${esc(g.name)}<small>${g.items.length}</small></div>`);
+      g.items.forEach(addRow);
+    });
+  }
+  else list.forEach(addRow);
   box.dataset.tab = libTab;   // 畫完了（測試等這個）
   const cnt = `${by.songs.length} 首` + (by.ex.length ? ` · ${by.ex.length} 個技巧練習` : '') + (by.combo.length ? ` · ${by.combo.length} 個組合` : '');
   try { const est = await navigator.storage.estimate(); $('libStore').textContent = `${cnt} · 已用 ${(est.usage/1e6).toFixed(1)} MB`; } catch(e){ $('libStore').textContent = cnt; }
 }
 $('libTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b && b.dataset.tab !== libTab){ setLibTab(b.dataset.tab); delArm = null; setLibMsg(''); renderLibrary(); } });
 $('songs').addEventListener('click', async e => {
+  const tf = e.target.closest('[data-tagf]'), ta = e.target.closest('[data-tagall]');
+  if (tf || ta){
+    if (ta) exTagSel.clear(); else { const t = tf.dataset.tagf; if (exTagSel.has(t)) exTagSel.delete(t); else exTagSel.add(t); }
+    exTagSelSave(); delArm = null; renderLibrary(); return;
+  }
   const o = e.target.closest('[data-open]'), d = e.target.closest('[data-del]'), ed = e.target.closest('[data-edit]'), nc = e.target.closest('[data-newcombo]');
   if (o) openSong(o.dataset.open);
   if (ed) comboEdit(ed.dataset.edit);
@@ -1677,14 +1732,63 @@ async function recFromExercise(f){
   if (!text) throw new Error(`${f.name} 解不開`);
   const x = exParse(text, f.name);
   return {id: 'ex:' + f.name.replace(/\.[^.]+$/, ''), kind: 'exercise', title: x.title, origTitle: x.title, bpb: x.bpb, bars: x.bars,
-          scoreText: text, scoreName: f.name, bpm: null, bpmLog: [], added: Date.now(), last: 0};
+          scoreText: text, scoreName: f.name, bpm: null, bpmLog: [], tags: [], tagsOff: [], added: Date.now(), last: 0};
 }
 // 重新匯入同一個檔（例如譜改過）：換掉譜，改過的名稱、練習速度、記錄都留著
 function exKeep(r, old){
   if (old.kind !== 'exercise') return;
   if (old.title && old.title !== old.origTitle) r.title = old.title;
   r.bpm = old.bpm ?? null; r.bpmLog = old.bpmLog || [];
+  r.tags = old.tags || []; r.tagsOff = old.tagsOff || [];   // v1.17
 }
+// v1.16：技巧練習依技巧分組、排序（曲庫的「技巧練習」分頁、組合練習的勾選清單）。
+// 技巧＝名稱去掉結尾的括號，例如「小鼓切分(1)(16 beats)」→「小鼓切分」；改過名稱就照新名稱分。
+const exGroupName = t => String(t || '').replace(/(\s*[（(][^（）()]*[）)])+\s*$/, '').trim() || String(t || '');
+const exCmp = (a, b) => a.localeCompare(b, 'zh-Hant', {numeric: true});
+// 回傳 [{name, items}]：兩個以上同技巧的成一組（依技巧名稱排），只有一個的集中到最後的「其他」；
+// 沒有任何一組時只回傳一個 name: null（不畫小標題）。組內依名稱自然排序（(4 beats) 在 (16 beats) 前面）
+function exGroups(list){
+  const m = new Map();
+  [...list].sort((a, b) => exCmp(a.title, b.title)).forEach(r => { const k = exGroupName(r.title); if (!m.has(k)) m.set(k, []); m.get(k).push(r); });
+  const gs = [...m].filter(([, v]) => v.length > 1).map(([name, items]) => ({name, items})).sort((a, b) => exCmp(a.name, b.name));
+  const solo = [...m.values()].filter(v => v.length === 1).flat();
+  if (!gs.length) return solo.length ? [{name: null, items: solo}] : [];
+  if (solo.length) gs.push({name: '其他', items: solo});
+  return gs;
+}
+// v1.17：標籤，用來篩選（曲庫的「技巧練習」分頁、組合的勾選清單）。兩種：
+//   固定標籤：從目前的名稱用關鍵字算出來，不存（改規則就全部跟著變；改名會跟著變）
+//   自由標籤：使用者自己加的，存在 r.tags；個別練習不要的固定標籤存在 r.tagsOff
+const EX_AUTO_TAGS = [['大鼓', /大鼓|大小鼓/], ['小鼓', /小鼓/], ['過門', /過門/], ['切分', /切分/], ['重音', /重音/],
+  ['八分音符', /八分音符/], ['四分音符', /四分音符/], ['4 beats', /[(（]\s*4\s*beats?\s*[)）]/i], ['16 beats', /[(（]\s*16\s*beats?\s*[)）]/i]];
+const EX_TAG_MAX = 20;
+const exTagNorm = s => String(s || '').replace(/\s+/g, ' ').trim().slice(0, EX_TAG_MAX);
+const exAutoTags = r => EX_AUTO_TAGS.filter(([, re]) => re.test(r.title || '')).map(([t]) => t);
+// 這個練習的標籤 [{t, auto}]：固定的在前（扣掉隱藏的），自由的在後（和固定的重複就不再列）
+function exTags(r){
+  const off = new Set(r.tagsOff || []), out = exAutoTags(r).filter(t => !off.has(t)).map(t => ({t, auto: true}));
+  (r.tags || []).forEach(t => { if (!out.some(x => x.t === t)) out.push({t, auto: false}); });
+  return out;
+}
+const exHas = (r, sel) => { const ts = exTags(r).map(x => x.t); return [...sel].every(t => ts.includes(t)); };   // 複選＝交集
+// 所有練習用到的標籤和筆數：固定的照規則順序，自由的依名稱
+function exTagStats(list){
+  const n = new Map();
+  list.forEach(r => exTags(r).forEach(x => n.set(x.t, (n.get(x.t) || 0) + 1)));
+  const fixed = EX_AUTO_TAGS.map(([t]) => t).filter(t => n.has(t)), free = [...n.keys()].filter(t => !fixed.includes(t)).sort(exCmp);
+  return fixed.map(t => ({t, n: n.get(t), auto: true})).concat(free.map(t => ({t, n: n.get(t), auto: false})));
+}
+// 篩選列：「全部」＋每個標籤（data-tagf），選中的 aria-pressed
+function exTagBarHtml(list, sel){
+  const st = exTagStats(list);
+  if (!st.length) return '';
+  return `<div class="tagbar" role="group" aria-label="依標籤篩選"><button type="button" data-tagall aria-pressed="${sel.size ? 'false' : 'true'}">全部</button>` +
+    st.map(x => `<button type="button" class="${x.auto ? 'auto' : 'free'}" data-tagf="${esc(x.t)}" aria-pressed="${sel.has(x.t)}">${esc(x.t)}<small>${x.n}</small></button>`).join('') + '</div>';
+}
+const exChipsHtml = r => exTags(r).map(x => `<span class="tagchip ${x.auto ? 'auto' : 'free'}">${esc(x.t)}</span>`).join('');
+// 曲庫的篩選（cb-ex-tags：JSON 陣列），畫的時候拿掉已經沒有任何練習有的標籤
+let exTagSel = (() => { try { const v = JSON.parse(localStorage.getItem('cb-ex-tags') || '[]'); return new Set(Array.isArray(v) ? v.map(String) : []); } catch(e){ return new Set(); } })();
+function exTagSelSave(){ try { localStorage.setItem('cb-ex-tags', JSON.stringify([...exTagSel])); } catch(e){} }
 const exBest = r => r && r.bpmLog && r.bpmLog.length ? r.bpmLog[r.bpmLog.length - 1] : null;
 const exDate = at => new Date(at).toLocaleDateString('zh-TW', {month: 'numeric', day: 'numeric'});
 function exRowHtml(r){
@@ -1692,7 +1796,7 @@ function exRowHtml(r){
   const meta = [`${r.bpb}/4`, `${r.bars} 小節`, b ? `練到 ♩=${b.bpm}（${exDate(b.at)}）` : '還沒記錄速度',
                 r.last ? '上次 ' + new Date(r.last).toLocaleDateString('zh-TW') : ''].filter(Boolean).join(' · ');
   return `<span class="t">${esc(r.title)} <span class="extag">技巧練習</span></span>
-    <span class="m">${esc(meta)}</span>
+    <span class="m">${esc(meta)}</span>${exTags(r).length ? `\n    <span class="tags">${exChipsHtml(r)}</span>` : ''}
     <span class="go"><button data-open="${esc(r.id)}">練習</button><button class="del" data-del="${esc(r.id)}">${delArm === r.id ? '確定刪除' : '刪除'}</button></span>`;
 }
 // 練習用的 song：60 BPM 基準（一拍 1 秒），第 0 小節是預備拍，所以 bar1Beat＝每小節拍數。beats[] 多留幾拍，超出時 beatTime() 會外插
@@ -1713,7 +1817,7 @@ function openExercise(r){
   setSong(exSong(r));
   EX.start = barStart(1); EX.end = barStart(LAST + 1);
   loaded = true; $('play').disabled = false; $('seek').max = EX.end; $('seek').disabled = false;
-  applyView(); exRender(); updateTempoUI(); setPlayIcon(); tick(true);
+  applyView(); exRender(); exTagRender(); updateTempoUI(); setPlayIcon(); tick(true);
   initScore(async () => r.scoreText);
   window.scrollTo(0, 0);
 }
@@ -1774,8 +1878,44 @@ $('exName').addEventListener('change', async () => {
   const v = $('exName').value.trim().slice(0, 60) || EX.rec.origTitle, id = EX.id;
   $('exName').value = v;
   if (v === EX.rec.title) return;
-  EX.rec.title = v; SONG.title = v; renderHeader();
+  EX.rec.title = v; SONG.title = v; renderHeader(); exTagRender();
   try { await libUpdate(id, r => { r.title = v; }); } catch(err){ showErr('名稱沒有存起來：' + err.message); }
+});
+// v1.17：練習頁卡片上的標籤（組合練習不顯示）。自由標籤 × ＝刪掉；固定標籤 × ＝這個練習不要（tagsOff），之後可以按「↺」還原
+function exTagRender(){
+  if (!EX || EX.rec.kind !== 'exercise') return;
+  const r = EX.rec, off = exAutoTags(r).filter(t => (r.tagsOff || []).includes(t));
+  $('exTagList').innerHTML = exTags(r).map(x => `<span class="tagchip ${x.auto ? 'auto' : 'free'}">${esc(x.t)}` +
+      `<button type="button" ${x.auto ? 'data-tagoff' : 'data-tagdel'}="${esc(x.t)}" aria-label="${x.auto ? '這個練習不要標籤' : '刪掉標籤'} ${esc(x.t)}">×</button></span>`).join('') +
+    off.map(t => `<button type="button" class="tagchip auto hidden-tag" data-tagon="${esc(t)}" aria-label="還原標籤 ${esc(t)}">${esc(t)} ↺</button>`).join('');
+  libAll().then(all => {   // 輸入時提示已經有的標籤
+    const ts = exTagStats(all.filter(x => x.kind === 'exercise')).map(x => x.t);
+    EX_AUTO_TAGS.forEach(([t]) => { if (!ts.includes(t)) ts.push(t); });
+    $('exTagOpts').innerHTML = ts.map(t => `<option value="${esc(t)}"></option>`).join('');
+  }).catch(() => {});
+}
+// 改標籤：fn 會套用兩次（畫面上的 EX.rec、資料庫裡的那一筆），所以要寫成重複套用也一樣
+async function exTagEdit(fn){
+  if (!EX || EX.rec.kind !== 'exercise') return;
+  const id = EX.id; fn(EX.rec); exTagRender();
+  try { await libUpdate(id, fn); } catch(err){ showErr('標籤沒有存起來：' + err.message); }
+}
+function exTagAdd(r, t){
+  r.tags = r.tags || []; r.tagsOff = r.tagsOff || [];
+  if (exAutoTags(r).includes(t)){ r.tagsOff = r.tagsOff.filter(x => x !== t); return; }   // 本來就是固定標籤：還原
+  if (!r.tags.includes(t)) r.tags.push(t);
+}
+$('exTagNew').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); } });
+$('exTagNew').addEventListener('change', () => {
+  const ts = $('exTagNew').value.split(/[,，、]/).map(exTagNorm).filter(Boolean);
+  $('exTagNew').value = '';
+  if (ts.length) exTagEdit(r => ts.forEach(t => exTagAdd(r, t)));
+});
+$('exTagList').addEventListener('click', e => {
+  const d = e.target.closest('[data-tagdel]'), o = e.target.closest('[data-tagoff]'), on = e.target.closest('[data-tagon]');
+  if (d){ const t = d.dataset.tagdel; exTagEdit(r => { r.tags = (r.tags || []).filter(x => x !== t); }); }
+  if (o){ const t = o.dataset.tagoff; exTagEdit(r => { r.tagsOff = r.tagsOff || []; if (!r.tagsOff.includes(t)) r.tagsOff.push(t); }); }
+  if (on){ const t = on.dataset.tagon; exTagEdit(r => { r.tagsOff = (r.tagsOff || []).filter(x => x !== t); }); }
 });
 window.__cbEx = {get on(){ return !!EX; }, get playing(){ return !!(EX && EX.playing); }, get rate(){ return EX ? EX.rate : null; },
   get lap(){ return EX ? exLap() : null; }, get t(){ return EX ? curTime() : null; }, get range(){ return EX ? [EX.start, EX.end] : null; }};   // 方便除錯、測試
@@ -1975,19 +2115,50 @@ let comboEditId = null;
 async function comboEdit(id){
   let all = [];
   try { all = await libAll(); } catch(e){ showErr('讀不到曲庫（' + e.message + '）'); return; }
-  const exs = all.filter(r => r.kind === 'exercise').sort((a, b) => a.title.localeCompare(b.title, 'zh-Hant', {numeric: true}));
+  const exs = all.filter(r => r.kind === 'exercise'), groups = exGroups(exs);   // v1.16：和曲庫一樣依技巧分組
+  comboExs = exs; comboTagSel = new Set();
   const cur = id ? all.find(r => r.id === id) : null;
   comboEditId = cur ? cur.id : null;
   const picked = new Set(cur ? cur.items : []);
   $('comboDlgTitle').textContent = cur ? '編輯組合' : '新組合';
   $('comboName').value = cur ? cur.title : `組合 ${all.filter(r => r.kind === 'combo').length + 1}`;
-  $('comboList').innerHTML = exs.map(r => `<label class="combo-item"><input type="checkbox" value="${esc(r.id)}" data-bpb="${r.bpb}"${picked.has(r.id) ? ' checked' : ''}>` +
-    `<span class="t">${esc(r.title)}</span><small class="mono">${r.bpb}/4 · ${r.bars} 小節 · ${Math.ceil(r.bars / COMBO_BARS)} 行</small></label>`).join('');
+  $('comboList').innerHTML = groups.map(g => (g.name !== null ? `<div class="combo-group">${esc(g.name)}</div>` : '') +
+    g.items.map(r => `<label class="combo-item"><input type="checkbox" value="${esc(r.id)}" data-bpb="${r.bpb}"${picked.has(r.id) ? ' checked' : ''}>` +
+    `<span class="t">${esc(r.title)}</span><small class="mono">${r.bpb}/4 · ${r.bars} 小節 · ${Math.ceil(r.bars / COMBO_BARS)} 行</small></label>`).join('')).join('');
   $('comboErr').textContent = '';
+  comboFilter();
   comboDlgReps(comboReps(cur));
   comboBpbLock();
   $('comboDlg').hidden = false; document.body.classList.add('solo-open');
 }
+// v1.17：用標籤篩選。只是藏起來，勾過的不會被取消（存檔照樣算進去）；組的小標題整組都藏起來時一起藏
+let comboExs = [], comboTagSel = new Set();
+function comboFilter(){
+  $('comboTagBar').innerHTML = exTagBarHtml(comboExs, comboTagSel);
+  const byId = {}; comboExs.forEach(r => { byId[r.id] = r; });
+  let head = null, any = false, n = 0;
+  const done = () => { if (head) head.hidden = !any; };
+  [...$('comboList').children].forEach(el => {
+    if (el.classList.contains('combo-group')){ done(); head = el; any = false; return; }
+    const r = byId[el.querySelector('input').value], ok = !!r && exHas(r, comboTagSel);
+    el.hidden = !ok; if (ok){ any = true; n++; }
+  });
+  done();
+  $('comboNone').hidden = n > 0;
+  $('comboPickShown').hidden = !comboTagSel.size;
+}
+$('comboTagBar').addEventListener('click', e => {
+  const tf = e.target.closest('[data-tagf]'), ta = e.target.closest('[data-tagall]');
+  if (ta) comboTagSel.clear(); else if (tf){ const t = tf.dataset.tagf; if (comboTagSel.has(t)) comboTagSel.delete(t); else comboTagSel.add(t); } else return;
+  comboFilter();
+});
+// 勾選顯示的：只勾拍號和已勾的一樣的（還沒勾任何一個時，以第一個顯示的為準）
+$('comboPickShown').onclick = () => {
+  const boxes = [...$('comboList').querySelectorAll('input')], shown = boxes.filter(b => !b.closest('label').hidden);
+  const on = boxes.find(b => b.checked), bpb = on ? on.dataset.bpb : shown.length ? shown[0].dataset.bpb : null;
+  shown.forEach(b => { if (b.dataset.bpb === bpb) b.checked = true; });
+  $('comboErr').textContent = ''; comboBpbLock();
+};
 // 勾了一個以後，拍號不同的就不能勾（一份譜只能有一種拍號）
 function comboBpbLock(){
   const boxes = [...$('comboList').querySelectorAll('input')], on = boxes.find(b => b.checked), bpb = on ? on.dataset.bpb : null;
