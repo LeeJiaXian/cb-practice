@@ -137,6 +137,10 @@ button{cursor:pointer}
 .bar.now .bt{color:inherit;opacity:.85}
 .ovl-time{position:absolute;font:500 10px/1 var(--f-mono);color:#5a6676;pointer-events:none;white-space:nowrap}
 .bar.loop{outline:1.5px dashed var(--brass);outline-offset:-1.5px}
+.bar.loop-pick{outline:2px solid var(--brass);outline-offset:-2px}
+/* 鼓譜上循環的小節（鼓譜區固定白底，所以不分亮暗） */
+.ovl-loop{position:absolute;pointer-events:none;background:rgb(37 99 235 / .09);border-top:2px solid rgb(37 99 235 / .5);border-bottom:2px solid rgb(37 99 235 / .5)}
+.ovl-loop.pick{background:transparent;border:2px dashed rgb(37 99 235 / .7);border-radius:3px}
 @media (max-width:700px){.sec{grid-template-columns:1fr}.bar .fl{font-size:10px}}
 details.adv{font-size:13.5px;color:var(--muted)}
 details.adv summary{cursor:pointer}
@@ -227,6 +231,9 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .opts select,.scoreopts input[type=number]{min-height:34px}
 .viewsw button{min-height:36px;padding:4px 14px}
 .scorehead{margin-top:18px;align-items:center}
+/* v1.18：播放時、段落色條、譜上顯示時間移到「鼓譜」標題上方 */
+.scoreopts-top{margin-top:18px}
+.scoreopts-top + .scorehead{margin-top:6px}
 .scorehead h2,.maphead h2{font-size:26px}
 .scoretools{display:inline-flex;align-items:center;gap:8px 14px;flex-wrap:wrap;justify-content:flex-end}
 .widthctl{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);min-height:36px}
@@ -257,7 +264,7 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 .dock-in{max-width:680px;margin:0 auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));display:grid;gap:6px}
 .dock .seekrow{gap:10px}
 .dock .seekrow input[type=range]{height:28px}
-.dock-btns{display:grid;grid-template-columns:repeat(5,1fr);align-items:center;justify-items:center}
+.dock-btns{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);align-items:center;justify-items:center}   /* v1.18 按鈕數不固定（全螢幕、段落頭、混音看情況出現），平均分 */
 .dbtn{border:0;background:transparent;display:grid;justify-items:center;gap:2px;min-width:52px;min-height:48px;padding:4px 2px;color:var(--ink);border-radius:8px}
 .dbtn svg{width:22px;height:22px;fill:currentColor}
 .dbtn span{font-size:10.5px;color:var(--muted);white-space:nowrap}
@@ -309,8 +316,32 @@ body{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px));-webkit-tap-hi
 @media (max-width:520px){.metro .mgroup{grid-template-columns:auto 1fr}.metro .mvol{grid-column:1/-1}}
 .metro .mnote{font-size:12px;color:var(--muted);margin:0}
 
+/* v1.18 小節循環：選小節時按鈕和提示 */
+.dbtn.picking{background:var(--brass-soft)}
+.loophint{margin:0;font-size:13px;line-height:1.4;color:var(--ink);background:var(--brass-soft);border:1px solid var(--brass);border-radius:8px;padding:6px 10px}
+.loophint b{color:var(--brass)}
+/* v1.18 手機橫放的「全螢幕」：只在矮的橫放螢幕出現；按下後（body.compact）上下列縮小 */
+.dbtn.fullbtn{display:none}
+@media (orientation:landscape) and (max-height:500px){
+  .dbtn.fullbtn{display:grid}
+  body.compact{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+  body.compact .tp{padding-block:3px!important;gap:2px 12px!important;align-items:center}
+  body.compact .counter{gap:6px}
+  body.compact .counter .num{font-size:28px!important}
+  body.compact .counter .lab{font-size:11px;line-height:1.2}
+  body.compact .counter .lab b{font-size:12px}
+  body.compact .mid{display:flex!important;flex-wrap:nowrap;align-items:center;gap:10px!important;min-width:0}
+  body.compact .light{width:20px;height:20px;font-size:9.5px}
+  body.compact .secname{white-space:nowrap;font-size:12px;min-width:0}
+  body.compact .dock-in{padding-block:2px;gap:2px}
+  body.compact .dock .seekrow{display:none}
+  body.compact .dbtn{min-height:36px;padding:2px}
+  body.compact .dbtn span{display:none}
+  body.compact .dock .play{width:40px;height:40px}
+  body.compact .dock .play svg{width:18px;height:18px}
+}
+
 /* ===== mixer sheet ===== */
-.dock-btns{grid-template-columns:repeat(6,1fr)!important}
 .mixer{display:grid;gap:6px;padding:8px 2px 4px;border-bottom:1px solid var(--rule);margin-bottom:2px;max-height:46vh;overflow:auto}
 .mixer .mxhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .mixer .mxhead b{font-size:15px}
@@ -442,6 +473,12 @@ body:not(.combo) .combo-only{display:none !important}
 }
 .combo-card .exname{flex:0 0 auto}
 .combo-card .combo-list{flex:0 1 auto}
+/* v1.18：視窗高度卡在螢幕內（之前 max-height:100% 在 grid 裡算不出來，視窗比螢幕高，下面的技巧和「存檔」點不到）。
+   放不下時整張卡片捲動；中間的清單先縮到 80px。矮的橫放手機乾脆不讓清單自己捲，整張卡片一起捲，免得捲動區套捲動區 */
+.combo-card{max-height:calc(100vh - 32px);max-height:calc(100dvh - 16px - max(16px,env(safe-area-inset-top,0px)));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+@media (max-height:520px){
+  .combo-card .combo-list{flex:none;overflow:visible}
+}
 #comboShuffle{min-height:40px;white-space:nowrap}
 /* v1.14.1 每行練幾遍（練習頁卡片、新組合視窗共用） */
 .combo-opts{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
@@ -592,6 +629,11 @@ body.combo .ex-single{display:none !important}
   </section>
 
   <section id="scoreWrap">
+    <div class="scoreopts scoreopts-top">
+      <label>播放時 <select id="followMode" aria-label="鼓譜跟隨方式"><option value="center">保持在中間</option><option value="page">翻頁</option><option value="off">不捲動</option></select></label><input type="checkbox" id="follow" checked hidden>
+      <label class="song-only"><input type="checkbox" id="secMarks" checked> 段落色條</label>
+      <label class="song-only"><input type="checkbox" id="timeMarks" checked> 譜上顯示時間</label>
+    </div>
     <div class="scorehead">
       <h2>鼓譜</h2>
       <span class="scoretools">
@@ -601,10 +643,7 @@ body.combo .ex-single{display:none !important}
     </div>
     <div class="scorecard"><div id="score"><div class="msg">鼓譜載入中…</div></div></div>
     <div class="scoreopts">
-      <label>播放時 <select id="followMode" aria-label="鼓譜跟隨方式"><option value="center">保持在中間</option><option value="page">翻頁</option><option value="off">不捲動</option></select></label><input type="checkbox" id="follow" checked hidden>
       <label class="ex-only"><input type="checkbox" id="exFour" checked> 每行 4 小節</label>
-      <label class="song-only"><input type="checkbox" id="secMarks" checked> 段落色條</label>
-      <label class="song-only"><input type="checkbox" id="timeMarks" checked> 譜上顯示時間</label>
       <label class="filebtn song-only" for="scoreFile">換一份譜</label><input type="file" id="scoreFile" hidden>
       <label class="song-only">譜的第一小節＝第 <input type="number" id="firstBar" value="0" step="1" inputmode="numeric"> 小節</label>
     </div>
@@ -698,15 +737,16 @@ body.combo .ex-single{display:none !important}
       <p class="mxnote">M＝靜音，S＝獨奏（只聽這幾軌）。設定會跟著這首歌記住。</p>
       <p class="mxdebug" id="mxDebug" hidden></p>
     </div>
+    <p class="loophint" id="loopHint" aria-live="polite" hidden></p>
     <div class="seekrow">
       <input type="range" id="seek" min="0" max="300" step="0.01" value="0" aria-label="播放位置" disabled>
       <span class="time mono" id="time">0:00 / 0:00</span>
     </div>
     <div class="dock-btns">
+      <button class="dbtn fullbtn" id="fullBtn" aria-pressed="false" aria-label="全螢幕：上下列縮小"><svg viewBox="0 0 24 24"><path d="M3 3h7v2H5v5H3zm11 0h7v7h-2V5h-5zM3 14h2v5h5v2H3zm16 0h2v7h-7v-2h5z"/></svg><span>全螢幕</span></button>
       <button class="dbtn song-only" id="secStart" aria-label="回到這一段的開頭"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 6v12l-9-6z"/></svg><span>段落頭</span></button>
-      <button class="dbtn" id="prevBar" aria-label="前一小節"><svg viewBox="0 0 24 24"><path d="M11 6v12l-8-6zM21 6v12l-8-6z"/></svg><span>前一小節</span></button>
+      <button class="dbtn" id="loopBtn" aria-pressed="false" aria-label="循環小節"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2z"/></svg><span id="loopLab">循環</span></button>
       <button class="play" id="play" aria-label="播放" disabled><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4l13 8-13 8z"/></svg></button>
-      <button class="dbtn" id="nextBar" aria-label="後一小節"><svg viewBox="0 0 24 24"><path d="M3 6v12l8-6zM13 6v12l8-6z"/></svg><span>後一小節</span></button>
       <button class="dbtn" id="clickBtn" aria-pressed="false" aria-label="節拍器"><svg viewBox="0 0 24 24"><path d="M9 3h6l4 18H5zM11.2 5 8 19h8l-1.1-5H12l-.8-3.4L15 6.4 14.6 5z"/></svg><span>節拍器</span></button>
       <button class="dbtn" id="mixBtn" aria-pressed="false" aria-label="分軌混音" hidden><svg viewBox="0 0 24 24"><path d="M5 3h2v6h2v2H7v10H5V11H3V9h2zm6 0h2v12h2v2h-2v4h-2v-4H9v-2h2zm6 0h2v4h2v2h-2v12h-2V9h-2V7h2z"/></svg><span>混音</span></button>
     </div>
@@ -767,6 +807,9 @@ if (PHONE){ audio.setAttribute('playsinline', ''); audio.setAttribute('webkit-pl
 let pendingSeek = null;  // 還沒讀到 metadata 時的跳轉目標（iOS 不預載音檔）；桌機版永遠是 null
 let SONG = null, ORIG = null, B = [], BPB = 4, BAR1 = 0, LAST = 1, SECS = [], FILLS = new Set();
 let loaded = false, offset = 0, loop = null, actx = null, folderAudio = [];
+// loop＝{from, to, a, b, i?}：循環第 from～to 小節，時間 a～b（地圖段落的「循環」多了 i＝第幾段，a、b 前後各多一小節）
+// loopPick（v1.18 手機系的「循環」按鈕）：null＝沒在選；true＝等第一小節；數字＝已點的第一小節
+let loopPick = null;
 let editing = false;
 // v1.12 技巧練習（只有 PWA 會設）：沒有音檔，時鐘是 actx.currentTime。null＝一般的歌。見 transport.js 的 exRaw()
 let EX = null;
@@ -810,9 +853,9 @@ function setSong(s, orig){
   if (VARIANT === 'pwa' || VARIANT === 'bundle'){ offset = Number.isFinite(SONG.offsetMs) ? SONG.offsetMs/1000 : 0; $('offset').value = Math.round(offset*1000); }
   B = SONG.beats; BPB = SONG.beatsPerBar || 4; BAR1 = SONG.bar1Beat; LAST = SONG.lastBar; SECS = SONG.sections = normalizeSections(SONG.sections); FILLS = new Set(SONG.fills || []);
   score.firstBar = (SONG.score && Number.isInteger(SONG.score.firstBar)) ? SONG.score.firstBar : 0; $('firstBar').value = score.firstBar;
-  buildLights(); renderHeader(); buildMap(); if (PHONE) updateTempoUI();
+  loop = null; loopPick = null;
+  buildLights(); renderHeader(); buildMap(); if (PHONE){ updateTempoUI(); loopUI(); }
   if (score.osmd){ numberMeasures(); if (!$('scoreWrap').hidden) renderScore(); else score.needsRender = true; }
-  if (loop) loop = null;
   lastBeatKey = null; tick(true);
 }
 function renderHeader(){
@@ -880,8 +923,8 @@ function buildMap(){
     }
     const bars = el.querySelector('.bars');
     for (let b = from; b <= to; b++){
-      const inLoop = loop && SECS[loop.i] && b >= SECS[loop.i].from && b <= SECS[loop.i].to;
-      const c = document.createElement('button'); c.className = 'bar' + (inLoop ? ' loop' : ''); c.dataset.bar = b;
+      const inLoop = loop && b >= loop.from && b <= loop.to;
+      const c = document.createElement('button'); c.className = 'bar' + (inLoop ? ' loop' : '') + (loopPick === b ? ' loop-pick' : ''); c.dataset.bar = b;
       c.innerHTML = `<span class="bn"><span>${b}</span><span class="bt">${mmss(barStart(b))}</span></span>${FILLS.has(b) ? '<span class="fl">▲</span>' : ''}`;
       c.setAttribute('aria-label', `第 ${b} 小節，${mmss(barStart(b))}${FILLS.has(b) ? '，有變化' : ''}`);
       bars.appendChild(c); barEls[b] = c;
@@ -901,7 +944,7 @@ $('map').addEventListener('click', e => {
     if (fl){ const [a, z] = fl.dataset.fill.split(':').map(Number); const ty = el$(`[data-gaptype="${a}:${z}"]`); addSection(a, z, ty ? ty.value : 'interlude'); }
     return;
   }
-  if (b) seekTo(barStart(+b.dataset.bar) + 0.01);
+  if (b){ if (loopPick !== null) loopPickBar(+b.dataset.bar); else seekTo(barStart(+b.dataset.bar) + 0.01); }
   if (g) seekTo(barStart(SECS[+g.dataset.go].from - 1), true);
   if (l) toggleLoop(+l.dataset.loop);
 });
@@ -918,13 +961,16 @@ $('map').addEventListener('change', e => {
   if (rt){ const i = +rt.dataset.rt; setRange(i, SECS[i].from, Math.round(+rt.value), 'to'); }
 });
 function toggleLoop(i){
-  if (loop && loop.i === i){ loop = null; buildMap(); return; }
-  const s = SECS[i]; loop = {i, a: barStart(Math.max(0, s.from - 1)), b: barStart(Math.min(LAST + 1, s.to + 1))};
-  buildMap(); seekTo(loop.a, true);
+  loopPick = null;
+  if (loop && loop.i === i){ loop = null; loopRefresh(); return; }
+  const s = SECS[i]; loop = {i, from: s.from, to: s.to, a: barStart(Math.max(0, s.from - 1)), b: barStart(Math.min(LAST + 1, s.to + 1))};
+  loopRefresh(); seekTo(loop.a, true);
 }
+// 循環範圍變了：地圖、鼓譜上的標示，手機系還有底部的「循環」按鈕
+function loopRefresh(){ buildMap(); if (score.ready) drawSectionMarks(); if (PHONE) loopUI(); }
 
 /* ---------- edit mode ---------- */
-$('editBtn').onclick = () => { editing = !editing; $('editBtn').setAttribute('aria-pressed', editing); $('editTools').hidden = !editing; if (editing && loop) loop = null; buildMap(); tick(true); };
+$('editBtn').onclick = () => { editing = !editing; $('editBtn').setAttribute('aria-pressed', editing); $('editTools').hidden = !editing; if (editing){ loop = null; loopPick = null; } loopRefresh(); tick(true); };
 function recomputeSubs(){
   const cnt = {};
   SECS.forEach(sec => {
@@ -1319,8 +1365,10 @@ function exRaw(){ return EX.playing && actx ? EX.t0 + Math.max(0, actx.currentTi
 // v1.14.1 組合練習「每遍自動換一組」：換譜時循環長度會變，所以不繞回的時間減掉 shift 才是這份譜的時間（exPos），
 // lapBase＝換譜前已經練完幾遍。shift 一定是整數小節（拍長 1 秒、每小節 BPB 拍），重音不會錯位。跳轉時兩個都歸零
 const exPos = () => exRaw() - (EX.shift || 0);
-function exWrap(t){ return t < EX.end || EX.end <= EX.start ? t : EX.start + (t - EX.start) % (EX.end - EX.start); }
-function exLap(){ const t = exPos(); return (EX.lapBase || 0) + (t < EX.end || EX.end <= EX.start ? 1 : Math.floor((t - EX.start) / (EX.end - EX.start)) + 1); }
+// v1.18 小節循環時，繞回的範圍換成選到的小節（整數小節，所以節拍器的重音不會錯位）；第幾遍也照循環算
+const exRange = () => loop ? [loop.a, loop.b] : [EX.start, EX.end];
+function exWrap(t){ const [s, e] = exRange(); return t < e || e <= s ? t : s + (t - s) % (e - s); }
+function exLap(){ const t = exPos(), [s, e] = exRange(); return (EX.lapBase || 0) + (t < e || e <= s ? 1 : Math.floor((t - s) / (e - s)) + 1); }
 const isPaused = () => EX ? !EX.playing : audio.paused;
 const curRate = () => EX ? EX.rate : (audio.playbackRate || 1);
 function exSetPlaying(on){
@@ -1364,11 +1412,55 @@ function curTime(){ if (EX) return exWrap(exPos()); return pendingSeek !== null 
 $('play').onclick = togglePlay;
 const nowBarNo = () => { const p = pos(curTime()); return Math.max(0, Math.min(LAST, p.bar)); };
 if (PHONE){  // 底部操作列
-  $('prevBar').onclick = () => { if (!loaded) return; const p = pos(curTime()); const target = p.frac > 0.12 || !isPaused() && p.frac > 0.25 ? p.bar : p.bar - 1; seekTo(barStart(Math.max(0, target)) + 0.01, !isPaused()); };
-  $('nextBar').onclick = () => { if (!loaded) return; seekTo(barStart(Math.min(LAST, nowBarNo() + 1)) + 0.01, !isPaused()); };
   $('secStart').onclick = () => { if (!loaded) return; const s = secOf(nowBarNo()); seekTo(barStart(s ? s.from : nowBarNo()) + 0.01, !isPaused()); };
+  // v1.18 手機橫放的「全螢幕」：把上下列縮小（iPhone Safari 不給網頁全螢幕）。按鈕只在矮的橫放螢幕出現，樣式也只在那時生效，轉回直放自動恢復
+  const setCompact = on => { document.body.classList.toggle('compact', on); $('fullBtn').setAttribute('aria-pressed', String(on)); };
+  try { setCompact(localStorage.getItem('cb-compact') === '1'); } catch(e){}
+  $('fullBtn').onclick = () => { const on = !document.body.classList.contains('compact'); setCompact(on); try { localStorage.setItem('cb-compact', on ? '1' : '0'); } catch(e){} };
   $('clickBtn').onclick = () => { const open = $('metroSheet').hidden; $('metroSheet').hidden = !open; if (open){ const mx = document.getElementById('mixer'); if (mx) mx.hidden = true; updateTempoUI(); } };
 }
+/* ---------- v1.18 小節循環（手機系底部操作列的「循環」按鈕，取代前一小節／後一小節） ----------
+   按「循環」→ 在鼓譜或小節地圖上點第一小節 → 再點最後一小節（點反了自動對調，同一小節點兩次就只循環那一小節）
+   → 跳到第一小節開始循環；原本在播就接著播。播放／暫停、節拍器、改速度照常。再按一次「循環」取消（選到一半按也是取消）。
+   歌曲：playback.js 的 tick 播到 loop.b 就跳回 loop.a（和地圖段落的「循環」同一套）。
+   技巧練習：exWrap 改繞回 loop.a～loop.b；組合練習循環中不自動換一組。 */
+function loopPickBar(bar){
+  if (!loaded || loopPick === null) return;
+  bar = Math.max(EX ? 1 : 0, Math.min(LAST, bar));   // 技巧練習的第 0 小節是預備拍，不在譜上
+  if (loopPick === true){ loopPick = bar; loopRefresh(); return; }
+  const from = Math.min(loopPick, bar), to = Math.max(loopPick, bar);
+  loopPick = null;
+  loop = {from, to, a: barStart(from), b: barStart(to + 1)};
+  loopRefresh();
+  seekTo(loop.a + 0.01);   // 不帶 play：在播就接著播，暫停就停在第一小節
+  if (score.ready && !$('scoreWrap').hidden) keepScoreInView();
+}
+function clearLoop(){
+  loopPick = null;
+  if (loop && EX){
+    // 技巧練習：現在的位置是照循環繞回算的，取消後從這裡接著走（和改速度一樣重新定錨，拍子不斷）
+    const c = curTime(); loop = null;
+    EX.t0 = c; EX.shift = 0; EX.lapBase = 0; if (actx && EX.playing) EX.a0 = actx.currentTime;
+    if (EX.rec.combo) EX.rec.combo.lapSeen = exLap();
+    lastBeatKey = null; metroResync();
+  } else loop = null;
+  loopRefresh(); tick(true);
+}
+function loopUI(){
+  const on = !!loop || loopPick !== null;
+  $('loopBtn').setAttribute('aria-pressed', String(on));
+  $('loopBtn').classList.toggle('picking', loopPick !== null);
+  $('loopLab').textContent = loopPick === true ? '點第一小節' : typeof loopPick === 'number' ? '點最後小節'
+    : loop ? (loop.from === loop.to ? `第 ${loop.from} 小節` : `${loop.from}–${loop.to}`) : '循環';
+  const hint = loopPick === true ? '循環：點鼓譜或小節地圖上的<b>第一個小節</b>（再按一次「循環」取消）'
+    : typeof loopPick === 'number' ? `循環：從第 ${loopPick} 小節開始，再點<b>最後一個小節</b>（同一小節再點一次＝只循環這一小節）` : '';
+  $('loopHint').innerHTML = hint; $('loopHint').hidden = !hint;
+}
+$('loopBtn').onclick = () => {
+  if (!loaded) return;
+  if (loop || loopPick !== null) clearLoop();
+  else { loopPick = true; loopRefresh(); }
+};
 /* ---------- 節拍器與速度 ---------- */
 const songBpm = () => (SONG && SONG.bpm) || 100;
 function curBpm(){ return Math.round(songBpm() * curRate()); }
@@ -2038,7 +2130,7 @@ function comboTick(){
   const cm = EX.rec.combo;
   if (comboSwapping) return;
   const lap = exLap();
-  if (!cm.auto || !EX.playing || lap <= cm.lapSeen){ cm.lapSeen = lap; return; }
+  if (!cm.auto || !EX.playing || loop || lap <= cm.lapSeen){ cm.lapSeen = lap; return; }   // v1.18 小節循環中不換譜
   cm.lapSeen = lap;
   comboAutoNext();
 }
@@ -2880,8 +2972,17 @@ function cursorLayer(){
 function gm(i){ const row = score.osmd.GraphicSheet.MeasureList[i]; return row && row.find(x => x); }
 function drawSectionMarks(){
   const layer = cursorLayer(); if (!layer) return;
-  layer.querySelectorAll('.ovl-strip,.ovl-lab,.ovl-time').forEach(e => e.remove());
+  layer.querySelectorAll('.ovl-strip,.ovl-lab,.ovl-time,.ovl-loop').forEach(e => e.remove());
   const z = score.osmd.zoom * 10, n = score.osmd.Sheet.SourceMeasures.length, labW = {}, labs = [];
+  // 循環的小節（淡藍底）、選循環時已點的第一小節（虛線框）
+  const loopBox = (b, cls) => {
+    const i = b - score.firstBar; if (i < 0 || i >= n) return; const m = gm(i); if (!m) return;
+    const p = m.PositionAndShape, el = document.createElement('div'); el.className = cls;
+    el.style.cssText = `left:${p.AbsolutePosition.x * z}px;top:${(p.AbsolutePosition.y - 1.5) * z}px;width:${p.Size.width * z}px;height:${7 * z}px`;
+    layer.appendChild(el);
+  };
+  if (loop) for (let b = loop.from; b <= loop.to; b++) loopBox(b, 'ovl-loop');
+  if (typeof loopPick === 'number') loopBox(loopPick, 'ovl-loop pick');
   if ($('secMarks').checked) SECS.forEach(s => {
     const col = `var(${PAPER[s.type] || '--pX'})`;
     for (let b = s.from; b <= s.to; b++){
@@ -2994,7 +3095,7 @@ function pageFlipDue(){
   const {top, bottom} = scoreViewBand(), c = lineOf(L, r.top), ahead = L[Math.min(c + 1, L.length - 1)];
   return r.top < top || r.bottom > bottom || ahead.bottom > bottom;
 }
-window.__cbScore = {lines: staffLines, cursor: cursorRect, band: scoreViewBand, showTop: (L, i) => lineShowTop(L, i), get osmd(){ return score.osmd; }, separateVoiceRests};   // 方便除錯、測試
+window.__cbScore = {lines: staffLines, cursor: cursorRect, band: scoreViewBand, showTop: (L, i) => lineShowTop(L, i), get osmd(){ return score.osmd; }, get firstBar(){ return score.firstBar; }, separateVoiceRests};   // 方便除錯、測試
 // 桌機版：「播放時自動捲動」打勾時，游標超出畫面才捲
 function followScrollDesktop(){
   if (!$('follow').checked || isPaused()) return;
@@ -3024,7 +3125,8 @@ $('score').addEventListener('click', e => {
     const m = gm(i); if (!m) continue; const p = m.PositionAndShape;
     if (ux >= p.AbsolutePosition.x && ux <= p.AbsolutePosition.x + p.Size.width && uy >= p.AbsolutePosition.y - 5 && uy <= p.AbsolutePosition.y + 10){
       const bar = i + score.firstBar;
-      if (loaded){ seekTo(barStart(bar) + 0.01); if (PHONE) keepScoreInView(); }
+      if (loaded && loopPick !== null) loopPickBar(bar);
+      else if (loaded){ seekTo(barStart(bar) + 0.01); if (PHONE) keepScoreInView(); }
       else { $('fileHint').textContent = `先開啟音檔，才能跳到第 ${bar} 小節。`; if (PHONE) $('loader').scrollIntoView({behavior: 'smooth', block: 'center'}); }
       return;
     }
